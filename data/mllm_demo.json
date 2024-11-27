@@ -136,5 +136,35 @@
     "images": [
       "mllm_demo_data/3.jpg"
     ]
+  },
+  {
+    "messages": [
+      {
+        "content": "<image>他取得过哪些成就？",
+        "role": "user"
+      },
+      {
+        "content": "他于2022年6月被任命为神舟十六号任务的有效载荷专家，从而成为2023年5月30日进入太空的首位平民宇航员。他负责在轨操作空间科学实验有效载荷。",
+        "role": "assistant"
+      }
+    ],
+    "images": [
+      "mllm_demo_data/3.jpg"
+    ]
+  },
+  {
+    "messages": [
+      {
+        "content": "<image>他取得过什么成就？",
+        "role": "user"
+      },
+      {
+        "content": "他于2022年6月被任命为神舟十六号任务的有效载荷专家，从而成为2023年5月30日进入太空的首位平民宇航员。他负责在轨操作空间科学实验有效载荷。",
+        "role": "assistant"
+      }
+    ],
+    "images": [
+      "mllm_demo_data/3.jpg"
+    ]
   }
 ]

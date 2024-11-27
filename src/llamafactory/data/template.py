@@ -364,7 +364,8 @@ def get_template_and_fix_tokenizer(tokenizer: "PreTrainedTokenizer", data_args: 
             raise ValueError(f"Template {data_args.template} does not exist.")
 
     if template.mm_plugin.__class__.__name__ != "BasePlugin":
-        require_version("transformers>=4.45.0", "To fix: pip install transformers>=4.45.0")
+        # require_version("transformers>=4.45.0", "To fix: pip install transformers>=4.45.0")
+        require_version("transformers>=4.45.0.dev0", "To fix: pip install transformers>=4.45.0")
 
     if data_args.train_on_prompt and template.efficient_eos:
         raise ValueError("Current template does not support `train_on_prompt`.")
