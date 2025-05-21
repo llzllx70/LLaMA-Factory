@@ -23,16 +23,15 @@ class XioLift:
 
     def __init__(self, img_dir):
 
+        self.cwd = os.getcwd()
+
         self.model = "Qwen2.5-VL-7B-Instruct"
-        self.root_img_path = self.build_root_img_path(img_dir)
+
+        self.img_dir = img_dir
+        self.root_img_path = f'{self.cwd}/{img_dir}'
         self.structure = self.build_structure()
         self.prompt = self.build_prompt()
 
-    def build_root_img_path(self, img_dir):
-
-        # 替换为你的实际路径
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(current_dir, img_dir)
 
     def build_prompt(self):
 
@@ -90,7 +89,7 @@ class XioLift:
 
 
         r = chat_response.choices[0].message.content
-        print("Chat response: ", r)
+        # print("Chat response: ", r)
 
         b = time.time()
 
@@ -98,7 +97,7 @@ class XioLift:
 
         return r
 
-    def run(self):
+    def infer(self):
 
         ok = 0
         err = 0
@@ -111,13 +110,69 @@ class XioLift:
 
                 if r == type_:
                     ok += 1
-                    print(f'ok: {ok}')
+                    print(f'ok: {ok}, predict: {r} == true: {type_}')
 
                 else:
                     err += 1
-                    print(f'err: {err}, {r} != {type_}')
+                    print(f'err: {err}, predict: {r} != true: {type_}')
+
+    def append_to_mllm(self):
+
+        """
+        {
+            "messages": [
+            {
+                "content": "<image>请描述这张图片",
+                "role": "user"
+            },
+            {
+                "content": "中国宇航员桂海潮正在讲话。",
+                "role": "assistant"
+            },
+            {
+                "content": "他取得过哪些成就？",
+                "role": "user"
+            },
+            {
+                "content": "他于2022年6月被任命为神舟十六号任务的有效载荷专家，从而成为2023年5月30日进入太空的首位平民宇航员。他负责在轨操作空间科学实验有效载荷。",
+                "role": "assistant"
+            }
+            ],
+            "images": [
+            "mllm_demo_data/3.jpg"
+            ]
+        }
+        """
+
+        with open(f'{self.cwd}/data/mllm_demo.json') as f:
+            mllm = json.load(f)
+
+        for type_, images in self.structure.items():
+            for image in images:
+
+                dict_ = {
+                    "messages": [
+                        {
+                            "content": f"<image>{self.prompt}",
+                            "role": "user"
+                        },
+                        {
+                            "content": f"{type_}",
+                            "role": "assistant"
+                        }
+                    ],
+                    "images": [f'{self.img_dir}/{type_}/{image}']
+                }
+
+                mllm.append(dict_)
+
+        with open(f'{self.cwd}/data/mllm_demo.json', 'w') as f:
+            json.dump(mllm, f, ensure_ascii=False, indent=2)
+
+        print(mllm)
 
 
-xiolift = XioLift('xiolift_img')
-xiolift.run()
+xiolift = XioLift('tests/lsj/xiolift_img')
+xiolift.infer()
+# xiolift.append_to_mllm()
 

@@ -18,7 +18,10 @@
 # install
 1. pip install git+https://github.com/huggingface/transformers@21fac7abba2a37fae86106f87fcf9974fd1e3830 accelerate
     for assert "factor" in rope_scaling
- 
+
+2. ValueError: Processor was not found, please check and update your model file.
+    (LLaMA-Factory) double@CP-001:~/vsproject/LLaMA-Factory$ pip install git+https://github.com/huggingface/transformers@f3f6c86582611976e72be054675e2bf0abb5f775
+
 # 18 steps
 
 ## train
@@ -32,7 +35,23 @@ llamafactory-cli export examples/merge_lora/qwen2vl_lora_sft.yaml
 2. (llama_factory_1122) ~/PycharmProjects/LLaMA-Factory/tests/lsj$ python ./local_infer.py
 
 nohup python -m vllm.entrypoints.openai.api_server --dtype auto --max-model-len 10000 --served-model-name Qwen2-VL-7B-Instruct-AWQ --model ~/models/Qwen2-VL-7B-Instruct-AWQ > a.out 2>&1 &
+
+# result
+
+## 无 {"role": "system", "content": "你是一个分类器."},
+## train_epoch 3
+
+1. origin models:  ok: 13, err: 13
+2. models + lora (not merge), ok: 13, err: 13 vLLM currently only supports adding LoRA to language model
+3. models + lora (merge), ok: 16, err: 10
+
  
+## 有 {"role": "system", "content": "你是一个分类器."},
+## train_epoch 3
+3. models + lora (merge), ok: 17, err: 9
+
+## train_epoch 30
+4. models + lora (merge), ok: 22, err: 4
 
 # conclusion
 
@@ -157,15 +176,3 @@ page_1.png Qwen2-VL-7B-Instruct time: 14.98937201499939, out len: 570, ratio: 38
 选区_1.png Qwen2-VL-7B-Instruct time: 8.528743743896484, out len: 597, ratio: 69.99858571518665
 
 暂定为 Qwen2-VL-7B-Instruct-AWQ, dpi 为144, prompt 去年markdown 相关的描述
-
-| 姓名   | 年龄 | 城市   |
-|--------|------|--------|
-| 张三   | 28   | 北京   |
-| 李四   | 34   | 上海   |
-| 王五   | 22   | 广州   |
-
-|dd|dd| 
-|----|----| 
-|dd|
-
-# 九、学生奖励条例\n\n浙农商院（2017）233 号\n\n## 第一章 总则\n\n第一条 为了贯彻党和国家的教育方针，建设优良校风学风，鼓励学生努力学习，奋发进取，促进学生德、智、体等方面全面发展，根据国家有关文件精神，结合我院实际情况，特制定本条例。\n\n第二条 学校对学生的奖励坚持精神奖励和物质奖励相结合，精神奖励为主的原则。\n\n## 第二章 奖项的设置\n\n### 第三条 学校设立以下若干个人奖和集体奖。\n\n| 奖项名称     | 奖励类型   | 评选比例 | 评选方式        |\n|-------------|-----------|---------|----------------|\n| 综合奖       |            |          |                 |\n| 一等奖学金   | 1500 元 / 学年 | 4%以内 | 每学年评选一次，由学校发文表彰、奖励 |\n| 二等奖学金   | 800 元 / 学年 | 6%以内 |                 |\n| 三等奖学金   | 500 元 / 学年 | 10%以内 |                 |\n| 国家奖学金   | 8000 元 / 年 | 根据下达名额评定 | 根据上级文件评选 |\n| 省政府奖学金 | 6000 元 / 年 | 根据下达名额评定 |                '
