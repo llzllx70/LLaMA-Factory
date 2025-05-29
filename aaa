@@ -1,5 +1,0 @@
-1. dify 工作流，agent， chatflow 调研， 可以集成知识库
-2. xiolift 内外文档重新构建完成
-3. llm-chat 添加query修改功能
-4. llm-chat 支持上下文时去除**思考**， **AI回复*的干扰
-5. xiolift 电梯部件识别训练，正确率: 50% -> 85%，有一类图片干扰产比较大 
