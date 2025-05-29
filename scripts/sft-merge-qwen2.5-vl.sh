@@ -12,7 +12,7 @@ set -x
 # len=17000
 len=22000
 
-models=output/qwen2_5vl_lora_sft_epoch_300
+models=output/qwen2_5vl_lora_sft_desc_epoch_100
 # models=output/qwen2_5vl_lora_sft
 
 # 添加--enforce-eager会解决OOM问题

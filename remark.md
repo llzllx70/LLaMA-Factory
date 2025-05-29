@@ -22,7 +22,7 @@
 2. ValueError: Processor was not found, please check and update your model file.
     (LLaMA-Factory) double@CP-001:~/vsproject/LLaMA-Factory$ pip install git+https://github.com/huggingface/transformers@f3f6c86582611976e72be054675e2bf0abb5f775
 
-# 18 steps
+# sft
 
 ## train
 ~/anaconda3/envs/llama_factory_1122/bin/llamafactory-cli train examples/train_lora/qwen2vl_lora_sft.yaml
@@ -36,7 +36,7 @@ llamafactory-cli export examples/merge_lora/qwen2vl_lora_sft.yaml
 
 nohup python -m vllm.entrypoints.openai.api_server --dtype auto --max-model-len 10000 --served-model-name Qwen2-VL-7B-Instruct-AWQ --model ~/models/Qwen2-VL-7B-Instruct-AWQ > a.out 2>&1 &
 
-# result
+# sft result
 
 ## 无 {"role": "system", "content": "你是一个分类器."},
 ## train_epoch 3
@@ -52,6 +52,23 @@ nohup python -m vllm.entrypoints.openai.api_server --dtype auto --max-model-len 
 
 ## train_epoch 30
 4. models + lora (merge), ok: 22, err: 4
+
+## train_epoch_100
+1. 添加 desc 后， ok: 22, err: 4, 变化是有一个 限速器钢丝绳张紧装置 识别正确
+2. 添加 desc 后， xiolift_sft.json 中 复制限速器钢丝绳张紧装置(增加负样本用例) 后进行训练 ok: 23, err: 3, 变化是有一个 限速器钢丝绳张紧装置 识别正确
+3. 添加 desc 后，再加上 各类别的描述，使用GPT + baidu 进行多个图片共同点提取， ok: 25, err: 1
+
+
+# dpo result
+1. epoch3, ok: 13, err: 13, 所有的错误都误识别为 "限速器钢丝绳张紧装置"
+2. epoch30, ok: 19, err: 7, 所有错误都和"限速器钢丝绳张紧装置"有关
+3. epoch30, add desc, ok: 15, err: 11, 训练语料的组织不合理，应该加上 描述: [], 类别: [], 
+   因为如果在生成时不加会直接输出类别信息，而没有训练语料的描述过程, 说明训练语料和生成结果没有对齐
+
+# dpo+sft
+1. epoch3, ok: 22, err: 4, 所有的错误都是"限速器钢丝绳张紧装置"没识别出来
+
+限速器钢丝绳张紧装置 样本数量为4， 可能是太少了，不确定和类别长度有没有关系？
 
 # conclusion
 

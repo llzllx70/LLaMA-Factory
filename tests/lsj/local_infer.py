@@ -1,10 +1,20 @@
 
+import re
 import os
 import json
 import time
 import base64
 from openai import OpenAI
+import argparse
+
+from tools.Json import Json
+
 # Set OpenAI's API key and API base to use vLLM's API server.
+
+parser = argparse.ArgumentParser(description="示例：添加命令行参数")
+parser.add_argument("--task", type=str, required=False, help="test")
+args = parser.parse_args()
+
 openai_api_key = "EMPTY"
 openai_api_base = "http://172.16.2.49:8002/v1"
 client = OpenAI(
@@ -12,11 +22,18 @@ client = OpenAI(
     base_url=openai_api_base,
 )
 
-PROMPT = """
-图片是电梯各个部件的照片，目前有如下类别:
-{types}
-请识别当前图片属于哪个类别，只输出类别名称，不要输出其他信息。
+CLASSIFY_PROMPT = """<image>图片是电梯某个部件的照片，有如下类别及对应的描述信息:
+【{info}】
+请依据图片信息及各类别的描述信息，区别当前图片属于哪个类别，先对图片进行描述，再输出类别。 格式如下:
+描述:【xxx】,
+此描述信息最匹配的类别:【yyy】
 """
+
+ANSWER_PROMPT = """描述:【{desc}】,
+此描述信息最匹配的类别:【{type}】
+"""
+
+DESCRIBE_PROMPT = """请对图片的关键特性进行描述，描述内容包括此部件的特性、用途、特点等信息，不需要具体指出部件的名称。"""
 
 
 class XioLift:
@@ -29,14 +46,15 @@ class XioLift:
 
         self.img_dir = img_dir
         self.root_img_path = f'{self.cwd}/{img_dir}'
+
+        self.info_file = f'{self.root_img_path}/info.json'
+        self.structure_file = f'{self.root_img_path}/structure.json'
+        self.desc_structure_file = f'{self.root_img_path}/desc_structure.json'
+
         self.structure = self.build_structure()
-        self.prompt = self.build_prompt()
+        self.types = list(self.structure.keys())
 
-
-    def build_prompt(self):
-
-        types = str(list(self.structure.keys()))
-        return PROMPT.format(types=types)
+        self.info = Json.load(self.info_file)
 
     def dir_to_dict(self, path):
         result = {}
@@ -52,20 +70,57 @@ class XioLift:
 
     def build_structure(self):
 
-        structure = self.dir_to_dict(self.root_img_path)
-        print(json.dumps(structure, indent=2, ensure_ascii=False))
+        if os.path.exists(self.structure_file):
+            return Json.load(self.structure_file)
 
+        else:
+            structure = self.dir_to_dict(self.root_img_path)
+            Json.save(self.structure_file, structure)
+
+        print(json.dumps(structure, indent=2, ensure_ascii=False))
         return structure
 
-    def f(self, image_path):
+    def build_desc_structure(self):
+
+        if os.path.exists(self.desc_structure_file):
+            return Json.load(self.desc_structure_file)
+
+        structure = self.build_structure()
+
+        desc_structure = {}
+
+        for type_, images in structure.items():
+
+            l = []
+            for image in images:
+                path_ = os.path.join(self.root_img_path, type_, image)
+
+                l.append(
+                    {
+                        'name': image,
+                        'desc': self.call(path_, system_prompt='你是一个图片内容提取器', text_prompt=DESCRIBE_PROMPT)
+                    }
+                )
+
+            desc_structure[type_] = l
+
+        print(json.dumps(structure, indent=2, ensure_ascii=False))
+
+        Json.save(self.desc_structure_file, desc_structure)
+
+        return desc_structure
+
+    def call(self, image_path, system_prompt, text_prompt, base64_qwen=None):
 
         # print(f'----------------{image_path}------------------{self.model}-------------------------------------')
 
-        with open(image_path, "rb") as f:
-            encoded_image = base64.b64encode(f.read())
+        if base64_qwen is None:
+            with open(image_path, "rb") as f:
+                encoded_image = base64.b64encode(f.read())
 
-        encoded_image_text = encoded_image.decode("utf-8")
-        base64_qwen = f"data:image;base64,{encoded_image_text}"
+            encoded_image_text = encoded_image.decode("utf-8")
+            base64_qwen = f"data:image;base64,{encoded_image_text}"
+
         # print(base64_qwen)
 
         a = time.time()
@@ -73,12 +128,12 @@ class XioLift:
             model=self.model,
             messages=[
                 # {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "system", "content": "你是一个分类器."},
+                {"role": "system", "content": system_prompt},
                 {
                     "role": "user",
                     "content": [
                         { "type": "image_url", "image_url": { "url": base64_qwen } },
-                        {"type": "text", "text": self.prompt}
+                        {"type": "text", "text": text_prompt}
                     ]
                 }
             ],
@@ -87,26 +142,35 @@ class XioLift:
             top_p = 0.1
         )
 
-
-        r = chat_response.choices[0].message.content
+        # r = chat_response.choices[0].message.content
         # print("Chat response: ", r)
 
-        b = time.time()
+        # return r
 
-        # print(f'{image_path} {self.model} time: {b-a}, out len: {len(r)}, ratio: {len(r)/(b-a)}')
+        return chat_response
 
-        return r
+    def extract_classify(self, content):
 
-    def infer(self):
+        match = re.search(r"类别[：:]\s*【(.+?)】", content)
+        if match:
+            return match.group(1)
+
+        else:
+            return content
+
+    def test(self):
 
         ok = 0
         err = 0
+
+        classify_prompt = CLASSIFY_PROMPT.format(info=self.info)
 
         for type_, images in self.structure.items():
 
             for image in images:
                 path_ = os.path.join(self.root_img_path, type_, image)
-                r = self.f(path_)
+                r = self.call(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
+                r = self.extract_classify(r)
 
                 if r == type_:
                     ok += 1
@@ -116,19 +180,22 @@ class XioLift:
                     err += 1
                     print(f'err: {err}, predict: {r} != true: {type_}')
 
-    def append_to_mllm(self):
+    def parse(self):
+
+        for type_, images in self.structure.items():
+
+            describe_prompt = DESCRIBE_PROMPT.format(type=type_)
+
+            for image in images:
+
+                path_ = os.path.join(self.root_img_path, type_, image)
+                r = self.call(path_, system_prompt='你是一个图片内容提取器', text_prompt=describe_prompt)
+
+    def build_xiolift_sft(self):
 
         """
         {
             "messages": [
-            {
-                "content": "<image>请描述这张图片",
-                "role": "user"
-            },
-            {
-                "content": "中国宇航员桂海潮正在讲话。",
-                "role": "assistant"
-            },
             {
                 "content": "他取得过哪些成就？",
                 "role": "user"
@@ -138,41 +205,91 @@ class XioLift:
                 "role": "assistant"
             }
             ],
-            "images": [
-            "mllm_demo_data/3.jpg"
-            ]
+            "images": [ "mllm_demo_data/3.jpg"]
         }
         """
 
-        with open(f'{self.cwd}/data/mllm_demo.json') as f:
-            mllm = json.load(f)
+        sft = []
+        desc_structure = self.build_desc_structure()
 
-        for type_, images in self.structure.items():
+        for type_, images in desc_structure.items():
             for image in images:
 
                 dict_ = {
                     "messages": [
                         {
-                            "content": f"<image>{self.prompt}",
+                            "content": f"{CLASSIFY_PROMPT.format(info=self.info)}",
                             "role": "user"
                         },
                         {
-                            "content": f"{type_}",
+                            "content": f"{ANSWER_PROMPT.format(desc=image['desc'], type=type_)}",
                             "role": "assistant"
                         }
                     ],
-                    "images": [f'{self.img_dir}/{type_}/{image}']
+                    "images": [f'{self.img_dir}/{type_}/{image["name"]}']
                 }
 
-                mllm.append(dict_)
+                sft.append(dict_)
 
-        with open(f'{self.cwd}/data/mllm_demo.json', 'w') as f:
-            json.dump(mllm, f, ensure_ascii=False, indent=2)
+        with open(f'{self.cwd}/data/xiolift_sft.json', 'w') as f:
+            json.dump(sft, f, ensure_ascii=False, indent=2)
 
-        print(mllm)
+        print(sft)
+
+    def build_xiolift_dpo(self):
+
+        """
+        {
+            'conversations': [
+                {'from': 'human', 'value': '<image>What are the key features you observe in the image?'}
+            ], 
+            'chosen': {'from': 'gpt', 'value': 'A young man standing on stage wearing a white shirt and black pants.'}, 
+            'rejected': {'from': 'gpt', 'value': 'A young man standing on stage wearing white pants and shoes.'}, 
+            'images': [<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=336x470 at 0x7296B48DD820>]
+        }
+        """
+        jsonl_ =[]
+        import random
+
+        desc_structure = self.build_desc_structure()
+
+        for this_type_, images in desc_structure.items():
+            for image in images:
+                for type_ in self.types: 
+                    if type_ == this_type_:
+                        continue
+
+                    r_image = random.choice(desc_structure[type_])
+
+                    dict_ = {
+                        "conversations": [{"from": "human", "value": f"<image>{CLASSIFY_PROMPT.format(types=str(self.types))}"}],
+                        'chosen': {'from': 'gpt', 'value': f'{ANSWER_PROMPT.format(desc=image["desc"], type=this_type_)}'}, 
+                        'rejected': {'from': 'gpt', 'value': f'{ANSWER_PROMPT.format(desc=r_image["desc"], type=type_)}'}, 
+                        "images": [f'{self.img_dir}/{this_type_}/{image["name"]}']
+                    }
+
+                    jsonl_.append(dict_)
+
+        with open(f'{self.cwd}/data/dpo_xiolift.jsonl', 'w') as f:
+            for l in jsonl_:
+                f.write(json.dumps(l, ensure_ascii=False) + '\n')
 
 
-xiolift = XioLift('tests/lsj/xiolift_img')
-xiolift.infer()
-# xiolift.append_to_mllm()
+if __name__ == '__main__':
 
+    xiolift = XioLift('tests/lsj/xiolift_img')
+
+    if args.task == 'test':
+        xiolift.test()
+
+    if args.task == 'build_xiolift_sft':
+        xiolift.build_xiolift_sft()
+
+    if args.task == 'build_xiolift_dpo':
+        xiolift.build_xiolift_dpo()
+
+    if args.task == 'build_desc_structure':
+        xiolift.build_desc_structure()
+
+    if args.task == 'parse':
+        xiolift.parse()

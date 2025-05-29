@@ -24,6 +24,20 @@
       "tools": "tools"
     }
   },
+  "xiolift_sft": {
+    "file_name": "xiolift_sft.json",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant"
+    }
+  },
   "mllm_demo": {
     "file_name": "mllm_demo.json",
     "formatting": "sharegpt",
@@ -539,6 +553,17 @@
   },
   "rlhf_v": {
     "hf_hub_url": "llamafactory/RLHF-V",
+    "ranking": true,
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "conversations",
+      "chosen": "chosen",
+      "rejected": "rejected",
+      "images": "images"
+    }
+  },
+  "dpo_xiolift": {
+    "file_name": "dpo_xiolift.jsonl",
     "ranking": true,
     "formatting": "sharegpt",
     "columns": {
