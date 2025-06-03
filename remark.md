@@ -8,6 +8,7 @@
 # git 
 1. git fetch upstream
 2. git merge upstream/main
+3. git push origin main
 
 # version
 
