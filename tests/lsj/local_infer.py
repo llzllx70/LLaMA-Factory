@@ -269,7 +269,7 @@ class XioLift:
                     r_image = random.choice(desc_structure[type_])
 
                     dict_ = {
-                        "conversations": [{"from": "human", "value": f"<image>{CLASSIFY_PROMPT.format(info=self.info)}"}],
+                        "conversations": [{"from": "human", "value": f"{CLASSIFY_PROMPT.format(info=self.info)}"}],
                         'chosen': {'from': 'gpt', 'value': f'{ANSWER_PROMPT.format(desc=image["desc"], type=this_type_)}'}, 
                         'rejected': {'from': 'gpt', 'value': f'{ANSWER_PROMPT.format(desc=r_image["desc"], type=type_)}'}, 
                         "images": [f'{self.img_dir}/{this_type_}/{image["name"]}']
