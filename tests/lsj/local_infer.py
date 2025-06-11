@@ -37,7 +37,7 @@ ANSWER_PROMPT = """描述:【{desc}】,
 此描述信息最匹配的类别:【{type}】
 """
 
-DESCRIBE_PROMPT = """请对图片的关键特性进行描述，描述内容包括此部件的特性、用途、特点等信息，不需要具体指出部件的名称，忽视颜色等无关信息。"""
+DESCRIBE_PROMPT = """请对图片的关键特性进行描述，描述内容包括此部件的特性、用途、特点等信息，不需要具体指出部件的名称。"""
 
 
 class XioLift:
@@ -130,6 +130,9 @@ class XioLift:
             encoded_image_text = encoded_image.decode("utf-8")
             base64_qwen = f"data:image;base64,{encoded_image_text}"
 
+        # print(base64_qwen)
+
+        a = time.time()
         chat_response = client.chat.completions.create(
             model=self.model,
             messages=[
@@ -266,7 +269,7 @@ class XioLift:
                     r_image = random.choice(desc_structure[type_])
 
                     dict_ = {
-                        "conversations": [{"from": "human", "value": f"<image>{CLASSIFY_PROMPT.format(types=str(self.types))}"}],
+                        "conversations": [{"from": "human", "value": f"<image>{CLASSIFY_PROMPT.format(info=self.info)}"}],
                         'chosen': {'from': 'gpt', 'value': f'{ANSWER_PROMPT.format(desc=image["desc"], type=this_type_)}'}, 
                         'rejected': {'from': 'gpt', 'value': f'{ANSWER_PROMPT.format(desc=r_image["desc"], type=type_)}'}, 
                         "images": [f'{self.img_dir}/{this_type_}/{image["name"]}']
