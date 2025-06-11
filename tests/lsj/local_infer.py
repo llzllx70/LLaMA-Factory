@@ -7,7 +7,11 @@ import base64
 from openai import OpenAI
 import argparse
 
+import shutil
 from tools.Json import Json
+
+from QwenApi import QwenApi
+from ImageAugment import ImageAugment
 
 # Set OpenAI's API key and API base to use vLLM's API server.
 
@@ -38,23 +42,28 @@ DESCRIBE_PROMPT = """请对图片的关键特性进行描述，描述内容包�
 
 class XioLift:
 
-    def __init__(self, img_dir):
+    def __init__(self, img_dir, info_dir):
 
         self.cwd = os.getcwd()
 
         self.model = "Qwen2.5-VL-7B-Instruct"
 
         self.img_dir = img_dir
-        self.root_img_path = f'{self.cwd}/{img_dir}'
+        self.info_dir = info_dir
+        
+        self.full_img_path = f'{self.cwd}/{img_dir}'
+        self.full_info_path = f'{self.cwd}/{info_dir}'
 
-        self.info_file = f'{self.root_img_path}/info.json'
-        self.structure_file = f'{self.root_img_path}/structure.json'
-        self.desc_structure_file = f'{self.root_img_path}/desc_structure.json'
+        self.info_file = f'{self.full_info_path}/info.json'
+        self.structure_file = f'{self.full_info_path}/structure.json'
+        self.desc_structure_file = f'{self.full_info_path}/desc_structure.json'
 
         self.structure = self.build_structure()
         self.types = list(self.structure.keys())
 
         self.info = Json.load(self.info_file)
+
+        self.qwen_api = QwenApi()
 
     def dir_to_dict(self, path):
         result = {}
@@ -74,7 +83,7 @@ class XioLift:
             return Json.load(self.structure_file)
 
         else:
-            structure = self.dir_to_dict(self.root_img_path)
+            structure = self.dir_to_dict(self.full_img_path)
             Json.save(self.structure_file, structure)
 
         print(json.dumps(structure, indent=2, ensure_ascii=False))
@@ -93,7 +102,7 @@ class XioLift:
 
             l = []
             for image in images:
-                path_ = os.path.join(self.root_img_path, type_, image)
+                path_ = os.path.join(self.full_img_path, type_, image)
 
                 l.append(
                     {
@@ -142,12 +151,10 @@ class XioLift:
             top_p = 0.1
         )
 
-        # r = chat_response.choices[0].message.content
+        r = chat_response.choices[0].message.content
         # print("Chat response: ", r)
 
-        # return r
-
-        return chat_response
+        return r
 
     def extract_classify(self, content):
 
@@ -168,7 +175,7 @@ class XioLift:
         for type_, images in self.structure.items():
 
             for image in images:
-                path_ = os.path.join(self.root_img_path, type_, image)
+                path_ = os.path.join(self.full_img_path, type_, image)
                 r = self.call(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
                 r = self.extract_classify(r)
 
@@ -188,7 +195,7 @@ class XioLift:
 
             for image in images:
 
-                path_ = os.path.join(self.root_img_path, type_, image)
+                path_ = os.path.join(self.full_img_path, type_, image)
                 r = self.call(path_, system_prompt='你是一个图片内容提取器', text_prompt=describe_prompt)
 
     def build_xiolift_sft(self):
@@ -274,13 +281,78 @@ class XioLift:
             for l in jsonl_:
                 f.write(json.dumps(l, ensure_ascii=False) + '\n')
 
+    def format_new_corpus(self):
+        
+
+        # 设置你的根目录路径
+        root_dir = f'{self.cwd}/tests/lsj/部件识别'  # 修改为你的实际路径
+        output_dir = f'{self.cwd}/tests/lsj/xiolift_img'   # 分类保存的输出路径
+
+        # 正则匹配去掉 (2) 之类的序号，提取类别名
+        def extract_category(filename):
+            return re.sub(r'\s*\(\d+\)', '', filename)
+
+        # 遍历根目录
+        for folder_name in os.listdir(root_dir):
+            folder_path = os.path.join(root_dir, folder_name)
+            if not os.path.isdir(folder_path):
+                continue  # 忽略非目录
+
+            for file in os.listdir(folder_path):
+                if not file.lower().endswith('.jpg'):
+                    continue
+                category = extract_category(os.path.splitext(file)[0])
+                category_dir = os.path.join(output_dir, category)
+
+                os.makedirs(category_dir, exist_ok=True)
+
+                src_file = os.path.join(folder_path, file)
+                dst_filename = f"{folder_name}_{file}"
+                dst_file = os.path.join(category_dir, dst_filename)
+
+                shutil.copy2(src_file, dst_file)  # 或 shutil.move(src_file, dst_file) 进行移动
+                print(f"复制: {src_file} -> {dst_file}")
+
+    def extract_classify_info(self):
+
+        for classify, files in self.structure.items():
+
+            files = [os.path.join(self.full_img_path, classify, file) for file in files]
+
+            desc = self.qwen_api.classify_info(classify, files)
+
+            self.info[classify] = desc
+            
+        Json.save(self.info_file, self.info)
+
+    def augment(self):
+
+        """
+        图像增强
+        """
+
+        input_dir = f'{self.cwd}/tests/lsj/xiolift_img'
+        output_dir = f'{self.cwd}/tests/lsj/xiolift_img_aug'
+
+        target_num_per_class = 6
+        
+        aug = ImageAugment(input_dir, output_dir, target_num_per_class)
+        aug.augment()
+
 
 if __name__ == '__main__':
 
-    xiolift = XioLift('tests/lsj/xiolift_img')
+    xiolift = XioLift('tests/lsj/xiolift_img', 'tests/lsj/infos')
 
     if args.task == 'test':
         xiolift.test()
+
+    if args.task == 'format_new_corpus':
+        # xiolift.format_new_corpus()
+        pass
+
+    if args.task == 'extract_classify_info':
+        xiolift.extract_classify_info()
 
     if args.task == 'build_xiolift_sft':
         xiolift.build_xiolift_sft()
@@ -293,3 +365,6 @@ if __name__ == '__main__':
 
     if args.task == 'parse':
         xiolift.parse()
+
+    if args.task == 'augment':
+        xiolift.augment()
