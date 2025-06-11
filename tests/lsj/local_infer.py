@@ -342,7 +342,7 @@ class XioLift:
 
 if __name__ == '__main__':
 
-    xiolift = XioLift('tests/lsj/xiolift_img', 'tests/lsj/infos')
+    xiolift = XioLift('tests/lsj/xiolift_img_aug', 'tests/lsj/infos')
 
     if args.task == 'test':
         xiolift.test()
