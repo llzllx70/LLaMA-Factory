@@ -37,7 +37,7 @@ ANSWER_PROMPT = """描述:【{desc}】,
 此描述信息最匹配的类别:【{type}】
 """
 
-DESCRIBE_PROMPT = """请对图片的关键特性进行描述，描述内容包括此部件的特性、用途、特点等信息，不需要具体指出部件的名称。"""
+DESCRIBE_PROMPT = """请对图片的关键特性进行描述，描述内容包括此部件的特性、用途、特点等信息，不需要具体指出部件的名称，忽视颜色等无关信息。"""
 
 
 class XioLift:
@@ -130,9 +130,6 @@ class XioLift:
             encoded_image_text = encoded_image.decode("utf-8")
             base64_qwen = f"data:image;base64,{encoded_image_text}"
 
-        # print(base64_qwen)
-
-        a = time.time()
         chat_response = client.chat.completions.create(
             model=self.model,
             messages=[

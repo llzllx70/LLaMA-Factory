@@ -15,6 +15,7 @@
 - 18: (m_llama-factory) ~/llama_factory/LLaMA-Factory for test lora merge, marked in notion
 - 49: (llama_factory) ~/anaconda3/envs/llama_factory/LLaMA-Factory for train (old)
 - 49: (LLaMA-Factory) (base) double@CP-001:~/vsproject/LLaMA-Factory$  for train xiolift and learn source code
+- 35: 用于源码剖析
 
 # install
 1. pip install git+https://github.com/huggingface/transformers@21fac7abba2a37fae86106f87fcf9974fd1e3830 accelerate
