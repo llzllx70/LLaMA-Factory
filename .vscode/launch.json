@@ -1,0 +1,199 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+
+        {
+            "name": "augment",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "args": [
+                "--task",
+                "augment"
+            ],
+            "console": "internalConsole",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+
+        {
+            "name": "format_new_corpus",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "args": [
+                "--task",
+                "format_new_corpus"
+            ],
+            "console": "internalConsole",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+
+        {
+            "name": "extract_classify_info",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "args": [
+                "--task",
+                "extract_classify_info"
+            ],
+            "console": "internalConsole",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+
+        {
+            "name": "test",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "console": "internalConsole",
+            "args": [
+                "--task",
+                "test"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "parse",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "console": "internalConsole",
+            "args": [
+                "--task",
+                "parse"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "build_xiolift_sft",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "console": "internalConsole",
+            "args": [
+                "--task",
+                "build_xiolift_sft"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "build_xiolift_dpo",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "console": "internalConsole",
+            "args": [
+                "--task",
+                "build_xiolift_dpo"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "build_desc_structure",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "console": "internalConsole",
+            "args": [
+                "--task",
+                "build_desc_structure"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "sft train",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "llamafactory.cli",
+            "args": [
+                "train",
+                "examples/train_lora/qwen2_5vl_lora_sft.yaml"
+            ],
+            "console": "internalConsole",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "sft merge",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "llamafactory.cli",
+            "args": [
+                "export",
+                "examples/merge_lora/qwen2_5vl_lora_sft.yaml"
+            ],
+            "console": "internalConsole",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "dpo train",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "llamafactory.cli",
+            "args": [
+                "train",
+                "examples/train_lora/qwen2_5vl_lora_dpo.yaml"
+            ],
+            "console": "internalConsole",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "dpo merge",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "llamafactory.cli",
+            "args": [
+                "export",
+                "examples/merge_lora/qwen2_5vl_lora_dpo.yaml"
+            ],
+            "console": "internalConsole",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "dpo+sft merge",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "llamafactory.cli",
+            "args": [
+                "export",
+                "examples/merge_lora/qwen2_5vl_lora_dpo+sft.yaml"
+            ],
+            "console": "internalConsole",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        }
+    ]
+}
