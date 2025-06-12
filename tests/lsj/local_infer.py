@@ -26,14 +26,24 @@ client = OpenAI(
     base_url=openai_api_base,
 )
 
-CLASSIFY_PROMPT = """<image>图片是电梯某个部件的照片，有如下类别及对应的描述信息:
-【{info}】
-请依据图片信息及各类别的描述信息，区别当前图片属于哪个类别，先对图片进行描述，再输出类别。 格式如下:
+CLASSIFY_PROMPT = """<image>图片是电梯的某个部件，已知有如下部件类别及对应的描述信息:【{info}】
+请依据图片内容及上述描述信息，识别当前图片属于哪个类别，先对图片进行描述，再输出类别。 格式如下:
 描述:【xxx】,
 此描述信息最匹配的类别:【yyy】
 """
 
-ANSWER_PROMPT = """描述:【{desc}】,
+ANSWER_PROMPT = """此图片的内容可以描述为:【{desc}】,
+此描述信息最匹配的类别:【{type}】
+"""
+
+CLASSIFY_PROMPT_GEN = """<image>图片是电梯某个部件的图片，已知有如下部件类别:【{type}】
+请识别当前图片属于哪个类别，先对图片进行描述，再输出类别。 格式如下:
+描述:【xxx】,
+此描述信息最匹配的类别:【yyy】
+"""
+
+ANSWER_PROMPT_GEN = """此图片的内容可以描述为:【{desc}】,
+对比所有的部件类别描述: 【{info}】
 此描述信息最匹配的类别:【{type}】
 """
 
@@ -59,7 +69,8 @@ class XioLift:
         self.desc_structure_file = f'{self.full_info_path}/desc_structure.json'
 
         self.structure = self.build_structure()
-        self.types = list(self.structure.keys())
+
+        self.types = ','.join(list(self.structure.keys()))
 
         self.info = Json.load(self.info_file)
 
@@ -198,6 +209,15 @@ class XioLift:
                 path_ = os.path.join(self.full_img_path, type_, image)
                 r = self.call(path_, system_prompt='你是一个图片内容提取器', text_prompt=describe_prompt)
 
+    def info_str(self):
+        
+        str_ = ''
+        for type_, desc in self.info.items():
+
+            str_ += f"{type_}:{desc}"
+
+        return str_
+
     def build_xiolift_sft(self):
 
         """
@@ -219,13 +239,15 @@ class XioLift:
         sft = []
         desc_structure = self.build_desc_structure()
 
+        info_str = self.info_str()
+
         for type_, images in desc_structure.items():
             for image in images:
 
                 dict_ = {
                     "messages": [
                         {
-                            "content": f"{CLASSIFY_PROMPT.format(info=self.info)}",
+                            "content": f"{CLASSIFY_PROMPT.format(info=info_str)}",
                             "role": "user"
                         },
                         {
