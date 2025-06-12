@@ -61,14 +61,31 @@
         },
 
         {
-            "name": "test",
+            "name": "test49",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/tests/lsj/local_infer.py",
             "console": "internalConsole",
             "args": [
                 "--task",
-                "test"
+                "test",
+                "--flag",
+                "49"
+            ],
+            "justMyCode": false
+        },
+
+        {
+            "name": "test35",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "console": "internalConsole",
+            "args": [
+                "--task",
+                "test",
+                "--flag",
+                "35"
             ],
             "justMyCode": false
         },

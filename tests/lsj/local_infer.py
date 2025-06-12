@@ -26,10 +26,23 @@ logging.basicConfig(
 
 parser = argparse.ArgumentParser(description="示例：添加命令行参数")
 parser.add_argument("--task", type=str, required=False, help="test")
+parser.add_argument("--flag", type=str, required=False, help="flag")
 args = parser.parse_args()
 
+if args.flag == '49':
+    ip = '172.16.2.49'
+
+elif args.flag == '35':
+    ip = '172.16.2.35'
+
+else:
+    ip = '127.0.0.1'
+
+
+openai_api_base = f"http://{ip}:8002/v1"
+
 openai_api_key = "EMPTY"
-openai_api_base = "http://127.0.0.1:8002/v1"
+
 client = OpenAI(
     api_key=openai_api_key,
     base_url=openai_api_base,
@@ -185,19 +198,27 @@ class XioLift:
 
     def extract_classify(self, content):
 
-        match = re.search(r"类别为[：:]\s*【(.+?)】", content)
+        match = re.search(r"类别为?[：:]\s*【(.+?)】", content)
         if match:
             return match.group(1)
 
         else:
             return content
 
+    def build_test_prompt(self):
+        
+        if args.flag == '49':
+            return CLASSIFY_PROMPT.format(info=self.info_str())
+
+        elif args.flag == '35':
+            return CLASSIFY_PROMPT_GEN.format(type=self.types)
+
     def test(self):
 
         ok = 0
         err = 0
 
-        classify_prompt = CLASSIFY_PROMPT_GEN.format(type=self.types)
+        classify_prompt = self.build_test_prompt()
 
         for type_, images in self.structure.items():
 
@@ -206,9 +227,12 @@ class XioLift:
 
             for image in images:
                 path_ = os.path.join(self.full_img_path, type_, image)
+
+                logging.info(f'call {path_} with {classify_prompt}')
+
                 r = self.call(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
 
-                logging.info(f'call {path_} with {classify_prompt}, got {r}')
+                logging.info(f'got {r}')
 
                 r = self.extract_classify(r)
 
@@ -345,7 +369,6 @@ class XioLift:
                 f.write(json.dumps(l, ensure_ascii=False) + '\n')
 
     def format_new_corpus(self):
-        
 
         # 设置你的根目录路径
         root_dir = f'{self.cwd}/tests/lsj/部件识别'  # 修改为你的实际路径
