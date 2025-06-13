@@ -18,7 +18,7 @@ from ImageAugment import ImageAugment
 # Set OpenAI's API key and API base to use vLLM's API server.
 
 logging.basicConfig(
-    filename='local_infer.log',              # 日志文件名
+    filename='xiolift_trainer.log',              # 日志文件名
     filemode='a',                      # 追加模式 ('w' 为覆盖)
     format='%(asctime)s - %(levelname)s - %(message)s',  # 日志格式
     level=logging.INFO                 # 记录级别
@@ -123,43 +123,6 @@ class XioLift:
 
         return desc_structure
 
-    def call(self, image_path, system_prompt, text_prompt, base64_qwen=None):
-
-        # print(f'----------------{image_path}------------------{self.model}-------------------------------------')
-
-        if base64_qwen is None:
-            with open(image_path, "rb") as f:
-                encoded_image = base64.b64encode(f.read())
-
-            encoded_image_text = encoded_image.decode("utf-8")
-            base64_qwen = f"data:image;base64,{encoded_image_text}"
-
-        # print(base64_qwen)
-
-        a = time.time()
-        chat_response = client.chat.completions.create(
-            model=self.model,
-            messages=[
-                # {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "system", "content": system_prompt},
-                {
-                    "role": "user",
-                    "content": [
-                        { "type": "image_url", "image_url": { "url": base64_qwen } },
-                        {"type": "text", "text": text_prompt}
-                    ]
-                }
-            ],
-
-            temperature = 0.01,
-            top_p = 0.1
-        )
-
-        r = chat_response.choices[0].message.content
-        # print("Chat response: ", r)
-
-        return r
-
     def extract_classify(self, content):
 
         match = re.search(r"类别为?[：:]\s*【(.+?)】", content)
@@ -191,7 +154,7 @@ class XioLift:
 
                 logging.info(f'call {path_} with {classify_prompt}')
 
-                r = self.call(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
+                r = self.local_qwen_api.local_inference(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
 
                 logging.info(f'got {r}')
 

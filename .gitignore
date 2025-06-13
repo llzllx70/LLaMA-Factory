@@ -180,3 +180,4 @@ predictions_score.json
 models
 *.out
 data/dpo_xiolift.jsonl
+*.log
