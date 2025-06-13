@@ -205,20 +205,13 @@ class XioLift:
         else:
             return content
 
-    def build_test_prompt(self):
-        
-        if args.flag == '49':
-            return CLASSIFY_PROMPT.format(info=self.info_str())
-
-        elif args.flag == '35':
-            return CLASSIFY_PROMPT_GEN.format(type=self.types)
 
     def test(self):
 
         ok = 0
         err = 0
 
-        classify_prompt = self.build_test_prompt()
+        classify_prompt = CLASSIFY_PROMPT_GEN.format(type=self.types)
 
         for type_, images in self.structure.items():
 
@@ -226,6 +219,10 @@ class XioLift:
             #     continue
 
             for image in images:
+
+                if 'aug' in image:
+                    continue
+                
                 path_ = os.path.join(self.full_img_path, type_, image)
 
                 logging.info(f'call {path_} with {classify_prompt}')
@@ -238,13 +235,15 @@ class XioLift:
 
                 if r == type_:
                     ok += 1
-                    print(f'ok: {ok}, predict: {r} == true: {type_}')
-                    logging.info(f'ok: {ok}, predict: {r} == true: {type_}')
+                    s = f'ok: {ok}, predict: {r} == true: {type_} {image}'
+                    print(s)
+                    logging.info(s)
 
                 else:
                     err += 1
-                    print(f'err: {err}, predict: {r} != true: {type_}')
-                    logging.info(f'err: {err}, predict: {r} != true: {type_}')
+                    s = f'err: {err}, predict: {r} != true: {type_} {image}'
+                    print(s)
+                    logging.info(s)
 
     def check_sample_tokens(self):
         
