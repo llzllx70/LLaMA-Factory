@@ -12,10 +12,9 @@ set -x
 # len=17000
 len=22000
 
-models=output/qwen2_5vl_lora_sft_desc_epoch_80
-# models=output/qwen2_5vl_lora_sft
+models=output/sft
 
 # 添加--enforce-eager会解决OOM问题
 
-nohup vllm serve ${models} --served-model-name Qwen2.5-VL-7B-Instruct --port 8002 --host 0.0.0.0 --dtype bfloat16 --max-model-len $len --enforce-eager --enable-sleep-mode > a.out 2>&1 &
+nohup vllm serve ${models} --served-model-name Qwen2.5-VL-7B-Instruct --port 8002 --host 0.0.0.0 --dtype bfloat16 --max-model-len $len --enforce-eager --enable-sleep-mode > vllm.out 2>&1 &
 

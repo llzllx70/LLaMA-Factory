@@ -16,7 +16,7 @@
             "name": "augment",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "program": "${workspaceFolder}/xiolift/src/XioliftTrainer.py",
             "args": [
                 "--task",
                 "augment"
@@ -32,7 +32,7 @@
             "name": "format_new_corpus",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "program": "${workspaceFolder}/xiolift/src/XioliftTrainer.py",
             "args": [
                 "--task",
                 "format_new_corpus"
@@ -48,7 +48,7 @@
             "name": "extract_classify_info",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "program": "${workspaceFolder}/xiolift/src/XioliftTrainer.py",
             "args": [
                 "--task",
                 "extract_classify_info"
@@ -64,7 +64,7 @@
             "name": "test49",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "program": "${workspaceFolder}/xiolift/src/XioliftTrainer.py",
             "console": "internalConsole",
             "args": [
                 "--task",
@@ -79,7 +79,7 @@
             "name": "test35",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "program": "${workspaceFolder}/xiolift/src/XioliftTrainer.py",
             "console": "internalConsole",
             "args": [
                 "--task",
@@ -93,7 +93,7 @@
             "name": "parse",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "program": "${workspaceFolder}/xiolift/src/XioliftTrainer.py",
             "console": "internalConsole",
             "args": [
                 "--task",
@@ -105,7 +105,7 @@
             "name": "build_xiolift_sft",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "program": "${workspaceFolder}/xiolift/src/XioliftTrainer.py",
             "console": "internalConsole",
             "args": [
                 "--task",
@@ -117,7 +117,7 @@
             "name": "build_xiolift_dpo",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "program": "${workspaceFolder}/xiolift/src/XioliftTrainer.py",
             "console": "internalConsole",
             "args": [
                 "--task",
@@ -129,7 +129,7 @@
             "name": "build_desc_structure",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/lsj/local_infer.py",
+            "program": "${workspaceFolder}/xiolift/src/XioliftTrainer.py",
             "console": "internalConsole",
             "args": [
                 "--task",
