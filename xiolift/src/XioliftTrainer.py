@@ -68,6 +68,10 @@ class XioLift:
         self.qwen_api = QwenApi()
         self.local_qwen_api = QwenApi(base_url=openai_api_base)
 
+        self.key_to_id = {key: str(idx + 1) for idx, key in enumerate(self.info)}
+        self.id_to_key = {str(idx + 1): key for idx, key in enumerate(self.info)}
+
+
     def dir_to_dict(self, path):
         result = {}
         for item in os.listdir(path):
