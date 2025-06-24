@@ -16,6 +16,9 @@ from MyPrompt import *
 from QwenApi import QwenApi
 from ImageAugment import ImageAugment
 
+from CorpusBuilder import CorpusBuilder
+from Test import Test
+
 # Set OpenAI's API key and API base to use vLLM's API server.
 
 logging.basicConfig(
@@ -57,12 +60,12 @@ class XioLift:
         self.full_info_path = f'{self.cwd}/{info_dir}'
 
         self.info_file = f'{self.full_info_path}/info.json'
-        self.structure_file = f'{self.full_info_path}/structure.json'
+        self.type_2_images_file = f'{self.full_info_path}/type_2_images.json'
         self.desc_structure_file = f'{self.full_info_path}/desc_structure.json'
 
-        self.structure = self.build_structure()
+        self.type_2_images = self.build_type_2_images()
 
-        self.types = ','.join(list(self.structure.keys()))
+        self.types = ','.join(list(self.type_2_images.keys()))
 
         self.info = Json.load(self.info_file)
 
@@ -85,24 +88,24 @@ class XioLift:
 
         return result
 
-    def build_structure(self):
+    def build_type_2_images(self):
 
-        if os.path.exists(self.structure_file):
-            return Json.load(self.structure_file)
+        if os.path.exists(self.type_2_images_file):
+            return Json.load(self.type_2_images_file)
 
         else:
-            structure = self.dir_to_dict(self.full_img_path)
-            Json.save(self.structure_file, structure)
+            type_2_images = self.dir_to_dict(self.full_img_path)
+            Json.save(self.type_2_images_file, type_2_images)
 
-        print(json.dumps(structure, indent=2, ensure_ascii=False))
-        return structure
+        print(json.dumps(type_2_images, indent=2, ensure_ascii=False))
+        return type_2_images
 
     def build_desc_structure(self):
 
         if os.path.exists(self.desc_structure_file):
             return Json.load(self.desc_structure_file)
 
-        structure = self.build_structure()
+        structure = self.build_type_2_images()
 
         desc_structure = {}
 
@@ -138,49 +141,6 @@ class XioLift:
         else:
             return content
 
-
-    def test(self):
-
-        ok = 0
-        err = 0
-
-        classify_prompt = SFT_USER_PROMPT.format(id_2_key=self.id_to_key)
-
-        for type_, images in self.structure.items():
-
-            # if type_ != '限速器钢丝绳张紧装置':
-            #     continue
-
-            for image in images:
-
-                if 'aug' in image:
-                    continue
-                
-                path_ = os.path.join(self.full_img_path, type_, image)
-
-                logging.info(f'call {path_} with {classify_prompt}')
-
-                r = self.local_qwen_api.local_inference(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
-
-                logging.info(f'got {r}')
-
-                p_id = self.extract_classify(r)
-                p_type = self.id_to_key[p_id]
-
-                t_id = self.key_to_id[type_]
-
-                if p_id == t_id:
-                    ok += 1
-                    s = f'ok: {ok}, predict: {p_id}:{p_type} == true: {t_id}:{type_} {image}'
-                    print(s)
-                    logging.info(s)
-
-                else:
-                    err += 1
-                    s = f'err: {err}, predict: {p_id}:{p_type} != true: {t_id}:{type_} {image}'
-                    print(s)
-                    logging.info(s)
-
     def check_sample_tokens(self):
         
         from transformers import AutoTokenizer
@@ -210,102 +170,6 @@ class XioLift:
         tokens = tokenizer.encode(text)
         print("Total tokens:", len(tokens))
         
-
-    def parse(self):
-
-        for type_, images in self.structure.items():
-
-            describe_prompt = IMAGE_EXTRACT_PROMPT.format(classify=type_)
-
-            for image in images:
-
-                path_ = os.path.join(self.full_img_path, type_, image)
-                r = self.call(path_, system_prompt='你是一个图片内容提取器', text_prompt=describe_prompt)
-
-    def info_str(self):
-        
-        str_ = ''
-        for type_, desc in self.info.items():
-
-            str_ += f"{type_}:{desc}"
-
-        return str_
-
-    def build_xiolift_sft(self):
-
-        sft = []
-        desc_structure = self.build_desc_structure()
-
-        # info_str = self.info_str()
-
-        for type_, images in desc_structure.items():
-
-            conslusion = self.info[type_]
-
-            for image in images:
-
-                dict_ = {
-                    "messages": [
-                        {
-                            "content": f"{SFT_USER_PROMPT.format(id_2_key=self.id_to_key)}",
-                            "role": "user"
-                        },
-                        {
-                            # "content": f"{SFT_ASSISTANT_PROMPT.format(desc=image['desc'], conclusion=conslusion, type=type_)}",
-                            "content": f"{SFT_ASSISTANT_PROMPT.format(index=self.key_to_id[type_])}",
-                            "role": "assistant"
-                        }
-                    ],
-                    "images": [f'{self.img_dir}/{type_}/{image["name"]}']
-                }
-
-                sft.append(dict_)
-
-        random.shuffle(sft)
-
-        with open(f'{self.cwd}/data/xiolift_sft.json', 'w') as f:
-            json.dump(sft, f, ensure_ascii=False, indent=2)
-
-        print(sft)
-
-    def build_xiolift_dpo(self):
-
-        """
-        {
-            'conversations': [
-                {'from': 'human', 'value': '<image>What are the key features you observe in the image?'}
-            ], 
-            'chosen': {'from': 'gpt', 'value': 'A young man standing on stage wearing a white shirt and black pants.'}, 
-            'rejected': {'from': 'gpt', 'value': 'A young man standing on stage wearing white pants and shoes.'}, 
-            'images': [<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=336x470 at 0x7296B48DD820>]
-        }
-        """
-        jsonl_ =[]
-        import random
-
-        desc_structure = self.build_desc_structure()
-
-        for this_type_, images in desc_structure.items():
-            for image in images:
-                for type_ in self.types: 
-                    if type_ == this_type_:
-                        continue
-
-                    r_image = random.choice(desc_structure[type_])
-
-                    dict_ = {
-                        "conversations": [{"from": "human", "value": f"{DPO_CLASSIFY_PROMPT.format(info=self.info)}"}],
-                        'chosen': {'from': 'gpt', 'value': f'{DPO_ANSWER_PROMPT.format(desc=image["desc"], type=this_type_)}'}, 
-                        'rejected': {'from': 'gpt', 'value': f'{DPO_ANSWER_PROMPT.format(desc=r_image["desc"], type=type_)}'}, 
-                        "images": [f'{self.img_dir}/{this_type_}/{image["name"]}']
-                    }
-
-                    jsonl_.append(dict_)
-
-        with open(f'{self.cwd}/data/dpo_xiolift.jsonl', 'w') as f:
-            for l in jsonl_:
-                f.write(json.dumps(l, ensure_ascii=False) + '\n')
-
     def format_new_corpus(self):
 
         # 设置你的根目录路径
@@ -339,7 +203,7 @@ class XioLift:
 
     def extract_classify_info(self):
 
-        for classify, files in self.structure.items():
+        for classify, files in self.type_2_images.items():
 
             try:
                 files = [os.path.join(self.full_img_path, classify, file) for file in files]
@@ -375,7 +239,14 @@ if __name__ == '__main__':
     xiolift = XioLift('xiolift/xiolift_img_aug', 'xiolift/infos')
 
     if args.task == 'test':
-        xiolift.test()
+
+        Test().test(
+            id_to_key=xiolift.id_to_key, 
+            key_to_id=xiolift.key_to_id, 
+            structure=xiolift.type_2_images, 
+            full_img_path=xiolift.full_img_path,
+            local_qwen_api=xiolift.local_qwen_api
+        )
 
     if args.task == 'format_new_corpus':
         # xiolift.format_new_corpus()
@@ -385,16 +256,15 @@ if __name__ == '__main__':
         xiolift.extract_classify_info()
 
     if args.task == 'build_xiolift_sft':
-        xiolift.build_xiolift_sft()
+        desc_structure = xiolift.build_desc_structure()
+        CorpusBuilder().build_sft(desc_structure=desc_structure)
 
     if args.task == 'build_xiolift_dpo':
-        xiolift.build_xiolift_dpo()
+        desc_structure = xiolift.build_desc_structure()
+        CorpusBuilder().build_dpo(desc_structure=desc_structure)
 
     if args.task == 'build_desc_structure':
         xiolift.build_desc_structure()
-
-    if args.task == 'parse':
-        xiolift.parse()
 
     if args.task == 'augment':
         xiolift.augment()
