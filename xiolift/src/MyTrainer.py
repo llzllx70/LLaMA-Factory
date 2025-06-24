@@ -47,7 +47,7 @@ else:
 openai_api_base = f"http://{ip}:8002/v1"
 
 
-class XioLift:
+class MyTrainer:
 
     def __init__(self, img_dir, info_dir):
 
@@ -63,7 +63,8 @@ class XioLift:
         self.type_2_images_file = f'{self.full_info_path}/type_2_images.json'
         self.desc_structure_file = f'{self.full_info_path}/desc_structure.json'
 
-        self.type_2_images = self.build_type_2_images()
+        # self.type_2_images = self.build_type_2_images()
+        self.type_2_images = {}
 
         self.types = ','.join(list(self.type_2_images.keys()))
 
@@ -236,16 +237,16 @@ class XioLift:
 
 if __name__ == '__main__':
 
-    xiolift = XioLift('xiolift/xiolift_img_aug', 'xiolift/infos')
+    trainer = MyTrainer('xiolift/xiolift_img_aug', 'xiolift/infos')
 
     if args.task == 'test':
 
         Test().test(
-            id_to_key=xiolift.id_to_key, 
-            key_to_id=xiolift.key_to_id, 
-            structure=xiolift.type_2_images, 
-            full_img_path=xiolift.full_img_path,
-            local_qwen_api=xiolift.local_qwen_api
+            id_to_key=trainer.id_to_key, 
+            key_to_id=trainer.key_to_id, 
+            structure=trainer.type_2_images, 
+            full_img_path=trainer.full_img_path,
+            local_qwen_api=trainer.local_qwen_api
         )
 
     if args.task == 'format_new_corpus':
@@ -253,18 +254,18 @@ if __name__ == '__main__':
         pass
 
     if args.task == 'extract_classify_info':
-        xiolift.extract_classify_info()
+        trainer.extract_classify_info()
 
     if args.task == 'build_xiolift_sft':
-        desc_structure = xiolift.build_desc_structure()
+        desc_structure = trainer.build_desc_structure()
         CorpusBuilder().build_sft(desc_structure=desc_structure)
 
     if args.task == 'build_xiolift_dpo':
-        desc_structure = xiolift.build_desc_structure()
+        desc_structure = trainer.build_desc_structure()
         CorpusBuilder().build_dpo(desc_structure=desc_structure)
 
     if args.task == 'build_desc_structure':
-        xiolift.build_desc_structure()
+        trainer.build_desc_structure()
 
     if args.task == 'augment':
-        xiolift.augment()
+        trainer.augment()
