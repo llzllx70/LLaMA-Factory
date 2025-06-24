@@ -266,7 +266,7 @@ if __name__ == '__main__':
         CorpusBuilder(trainer.img_dir).build_sft(desc_structure=desc_structure)
 
     if args.task == 'build_generate_xiolift_sft':
-        GenerateCorpusBuilder(trainer.cwd, trainer.img_dir).build_sft(trainer.type_2_images)
+        ImageCorpusBuilder(trainer.cwd, trainer.img_dir).build_sft(trainer.type_2_images)
 
     if args.task == 'build_xiolift_dpo':
         desc_structure = trainer.build_desc_structure()

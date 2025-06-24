@@ -82,7 +82,7 @@ class CorpusBuilder:
                 f.write(json.dumps(l, ensure_ascii=False) + '\n')
 
 
-class GenerateCorpusBuilder(CorpusBuilder):
+class ImageCorpusBuilder(CorpusBuilder):
 
     def __init__(self, cwd, img_dir):
         super().__init__(cwd, img_dir=img_dir)   
@@ -187,3 +187,61 @@ class GenerateCorpusBuilder(CorpusBuilder):
         ]
 
 
+class TextCorpusBuilder(CorpusBuilder):
+
+    def __init__(self, cwd, img_dir):
+        super().__init__(cwd, img_dir=img_dir)
+
+    """文本任务的语料库构建"""
+
+    def build_sft(self, relation):
+
+        return [
+            *self.from_system(relation['system']),
+            *self.from_relation(relation['relation']),
+            *self.from_desc(relation['desc'])
+        ]
+
+    def from_system(self, system):
+
+        ret = []
+
+        for k, v in system.items():
+
+            prompt =  k + v
+
+            ret += self.build_choice_message(prompt)
+            ret += self.build_filling_message(prompt)
+            ret += self.build_judge_messages(prompt)
+        
+        return ret
+
+    def from_relation(self, relation):
+
+        ret = []
+
+        ret += self.build_choice_message(relation)
+        ret += self.build_filling_message(relation)
+        ret += self.build_judge_messages(relation)
+        
+        return ret
+
+    def from_desc(self, desc):
+
+        ret = []
+
+        for item in desc:
+            ret += self.build_choice_message(item)
+            ret += self.build_filling_message(item)
+            ret += self.build_judge_messages(item)
+
+        return ret
+
+    def build_choice_message(self, prompt):
+        pass
+
+    def built_filling_message(self, prompt):
+        pass    
+    
+    def build_judge_messages(self, prompt):
+        pass
