@@ -45,8 +45,9 @@ class QwenApi:
                 }
             ],
 
-            temperature = 0.01,
-            top_p = 0.1
+            # temperature = 0.01,
+            temperature = 0.0,
+            top_p = 0.5
         )
 
         r = chat_response.choices[0].message.content

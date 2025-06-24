@@ -5,6 +5,7 @@ import os
 import json
 import time
 import base64
+import random
 from openai import OpenAI
 import argparse
 
@@ -129,7 +130,8 @@ class XioLift:
 
     def extract_classify(self, content):
 
-        match = re.search(r"类别为?[：:]\s*【(.+?)】", content)
+        # match = re.search(r"类别为?[：:]\s*【(.+?)】", content)
+        match = re.search(r"类别序号[：:]\s*【(.+?)】", content)
         if match:
             return match.group(1)
 
@@ -142,7 +144,7 @@ class XioLift:
         ok = 0
         err = 0
 
-        classify_prompt = SFT_USER_PROMPT.format(types=self.types)
+        classify_prompt = SFT_USER_PROMPT.format(id_2_key=self.id_to_key)
 
         for type_, images in self.structure.items():
 
@@ -162,17 +164,20 @@ class XioLift:
 
                 logging.info(f'got {r}')
 
-                r = self.extract_classify(r)
+                p_id = self.extract_classify(r)
+                p_type = self.id_to_key[p_id]
 
-                if r == type_:
+                t_id = self.key_to_id[type_]
+
+                if p_id == t_id:
                     ok += 1
-                    s = f'ok: {ok}, predict: {r} == true: {type_} {image}'
+                    s = f'ok: {ok}, predict: {p_id}:{p_type} == true: {t_id}:{type_} {image}'
                     print(s)
                     logging.info(s)
 
                 else:
                     err += 1
-                    s = f'err: {err}, predict: {r} != true: {type_} {image}'
+                    s = f'err: {err}, predict: {p_id}:{p_type} != true: {t_id}:{type_} {image}'
                     print(s)
                     logging.info(s)
 
@@ -242,11 +247,12 @@ class XioLift:
                 dict_ = {
                     "messages": [
                         {
-                            "content": f"{SFT_USER_PROMPT.format(types=self.types)}",
+                            "content": f"{SFT_USER_PROMPT.format(id_2_key=self.id_to_key)}",
                             "role": "user"
                         },
                         {
-                            "content": f"{SFT_ASSISTANT_PROMPT.format(desc=image['desc'], conclusion=conslusion, type=type_)}",
+                            # "content": f"{SFT_ASSISTANT_PROMPT.format(desc=image['desc'], conclusion=conslusion, type=type_)}",
+                            "content": f"{SFT_ASSISTANT_PROMPT.format(index=self.key_to_id[type_])}",
                             "role": "assistant"
                         }
                     ],
@@ -254,6 +260,8 @@ class XioLift:
                 }
 
                 sft.append(dict_)
+
+        random.shuffle(sft)
 
         with open(f'{self.cwd}/data/xiolift_sft.json', 'w') as f:
             json.dump(sft, f, ensure_ascii=False, indent=2)
@@ -286,9 +294,9 @@ class XioLift:
                     r_image = random.choice(desc_structure[type_])
 
                     dict_ = {
-                        "conversations": [{"from": "human", "value": f"{CLASSIFY_PROMPT.format(info=self.info)}"}],
-                        'chosen': {'from': 'gpt', 'value': f'{ANSWER_PROMPT.format(desc=image["desc"], type=this_type_)}'}, 
-                        'rejected': {'from': 'gpt', 'value': f'{ANSWER_PROMPT.format(desc=r_image["desc"], type=type_)}'}, 
+                        "conversations": [{"from": "human", "value": f"{DPO_CLASSIFY_PROMPT.format(info=self.info)}"}],
+                        'chosen': {'from': 'gpt', 'value': f'{DPO_ANSWER_PROMPT.format(desc=image["desc"], type=this_type_)}'}, 
+                        'rejected': {'from': 'gpt', 'value': f'{DPO_ANSWER_PROMPT.format(desc=r_image["desc"], type=type_)}'}, 
                         "images": [f'{self.img_dir}/{this_type_}/{image["name"]}']
                     }
 

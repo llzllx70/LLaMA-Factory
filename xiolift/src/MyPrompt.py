@@ -14,26 +14,33 @@ IMAGE_EXTRACT_PROMPT = r"""此图片属于电梯【{classify}】部件，请对�
 3. 不要出现部件名称。
 """
 
-SFT_USER_PROMPT = """<image>图片是电梯某个部件，已知有如下部件类别:【{types}】
+SFT_USER_PROMPT1 = """<image>图片是电梯某个部件，已知有如下部件类别:【{types}】
 请识别当前图片属于哪个类别，先对图片进行描述，再对描述进行总结，最后输出类别。 格式如下:
 此图片的内容可以描述为:【xxx】
 此描述可总结为:【yyy】
 结合描述和总结最匹配的类别为:【zzz】
 """
 
-SFT_ASSISTANT_PROMPT = """我对此图片的识别过程如下:
+SFT_ASSISTANT_PROMPT1 = """我对此图片的识别过程如下:
 此图片的内容可以描述为:【{desc}】
 此描述可总结为:【{conclusion}】
 结合描述和总结最匹配的类别为:【{type}】
 """
 
-CLASSIFY_PROMPT = """<image>图片是电梯的某个部件，已知有如下部件类别及对应的描述信息:【{info}】
+SFT_USER_PROMPT = """<image>图片是电梯某个部件，已知有如下部件类别及序号:【{id_2_key}】
+请识别当前图片属于哪个类别序号， 格式如下:
+类别序号:【序号xxx】
+"""
+
+SFT_ASSISTANT_PROMPT = """类别序号:【{index}】"""
+
+DPO_CLASSIFY_PROMPT = """<image>图片是电梯的某个部件，已知有如下部件类别及对应的描述信息:【{info}】
 请依据图片内容及上述描述信息，识别当前图片属于哪个类别，先对图片进行描述，再输出类别。 格式如下:
 描述:【xxx】,
 此描述信息最匹配的类别:【yyy】
 """
 
-ANSWER_PROMPT = """此图片的内容可以描述为:【{desc}】,
+DPO_ANSWER_PROMPT = """此图片的内容可以描述为:【{desc}】,
 此描述信息最匹配的类别:【{type}】
 """
 
