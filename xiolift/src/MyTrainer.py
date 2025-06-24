@@ -3,10 +3,6 @@ import logging
 import re
 import os
 import json
-import time
-import base64
-import random
-from openai import OpenAI
 import argparse
 
 import shutil
@@ -16,7 +12,7 @@ from MyPrompt import *
 from QwenApi import QwenApi
 from ImageAugment import ImageAugment
 
-from CorpusBuilder import CorpusBuilder
+from CorpusBuilder import *
 from Test import Test
 
 # Set OpenAI's API key and API base to use vLLM's API server.
@@ -63,19 +59,28 @@ class MyTrainer:
         self.type_2_images_file = f'{self.full_info_path}/type_2_images.json'
         self.desc_structure_file = f'{self.full_info_path}/desc_structure.json'
 
-        # self.type_2_images = self.build_type_2_images()
-        self.type_2_images = {}
-
-        self.types = ','.join(list(self.type_2_images.keys()))
-
-        self.info = Json.load(self.info_file)
-
         self.qwen_api = QwenApi()
         self.local_qwen_api = QwenApi(base_url=openai_api_base)
 
-        self.key_to_id = {key: str(idx + 1) for idx, key in enumerate(self.info)}
-        self.id_to_key = {str(idx + 1): key for idx, key in enumerate(self.info)}
+    @property
+    def key_2_id(self):
+        return {key: str(idx + 1) for idx, key in enumerate(self.info)}
 
+    @property
+    def id_2_key(self):
+        return {str(idx + 1): key for idx, key in enumerate(self.info)}
+
+    @property
+    def type_2_images(self):
+        return self.build_type_2_images()
+
+    @property
+    def types(self):
+        return ','.join(list(self.type_2_images.keys()))
+
+    @property
+    def info(self):
+        return Json.load(self.info_file)
 
     def dir_to_dict(self, path):
         result = {}
@@ -242,8 +247,8 @@ if __name__ == '__main__':
     if args.task == 'test':
 
         Test().test(
-            id_to_key=trainer.id_to_key, 
-            key_to_id=trainer.key_to_id, 
+            id_to_key=trainer.id_2_key, 
+            key_to_id=trainer.key_2_id, 
             structure=trainer.type_2_images, 
             full_img_path=trainer.full_img_path,
             local_qwen_api=trainer.local_qwen_api
@@ -258,7 +263,10 @@ if __name__ == '__main__':
 
     if args.task == 'build_xiolift_sft':
         desc_structure = trainer.build_desc_structure()
-        CorpusBuilder().build_sft(desc_structure=desc_structure)
+        CorpusBuilder(trainer.img_dir).build_sft(desc_structure=desc_structure)
+
+    if args.task == 'build_generate_xiolift_sft':
+        GenerateCorpusBuilder(trainer.cwd, trainer.img_dir).build_sft(trainer.type_2_images)
 
     if args.task == 'build_xiolift_dpo':
         desc_structure = trainer.build_desc_structure()

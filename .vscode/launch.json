@@ -114,6 +114,18 @@
             "justMyCode": false
         },
         {
+            "name": "build_generate_xiolift_sft",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/xiolift/src/MyTrainer.py",
+            "console": "internalConsole",
+            "args": [
+                "--task",
+                "build_generate_xiolift_sft"
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "build_xiolift_dpo",
             "type": "debugpy",
             "request": "launch",
