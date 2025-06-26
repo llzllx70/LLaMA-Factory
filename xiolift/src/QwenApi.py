@@ -55,6 +55,24 @@ class QwenApi:
 
         return r
 
+    def text_generate(self, text_prompt):
+        
+        try:
+            completion = self.client.chat.completions.create(
+                # model="qwen-plus",  # 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
+                model="qwen-max",  # 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
+                messages=[
+                        {'role': 'system', 'content': 'You are a helpful assistant.'},
+                        {'role': 'user', 'content': text_prompt}
+                    ]
+            )
+            a = completion.choices[0].message.content
+            print(a)
+            return a
+        except Exception as e:
+            print(f"错误信息：{e}")
+            print("请参考文档：https://help.aliyun.com/zh/model-studio/developer-reference/error-code")
+
     def batch_inference(self, messages):
         
         completion = self.client.chat.completions.create(

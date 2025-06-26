@@ -75,6 +75,10 @@ class MyTrainer:
         return self.build_type_2_images()
 
     @property
+    def relation(self):
+        return Json.load(f'{self.full_info_path}/relation.json')
+
+    @property
     def types(self):
         return ','.join(list(self.type_2_images.keys()))
 
@@ -266,7 +270,12 @@ if __name__ == '__main__':
         CorpusBuilder(trainer.img_dir).build_sft(desc_structure=desc_structure)
 
     if args.task == 'build_generate_xiolift_sft':
-        ImageCorpusBuilder(trainer.cwd, trainer.img_dir).build_sft(trainer.type_2_images)
+
+        generator = CorpusGenerator(trainer.cwd, trainer.img_dir, trainer.qwen_api)
+        generator.build_sft(
+            trainer.type_2_images, 
+            trainer.relation
+        )
 
     if args.task == 'build_xiolift_dpo':
         desc_structure = trainer.build_desc_structure()
