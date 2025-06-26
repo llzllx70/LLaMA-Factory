@@ -15,7 +15,7 @@ lora_target: all
 # dataset: mllm_demo,identity,alpaca_en_demo  # video: mllm_video_demo
 dataset: xiolift_generate_sft
 template: qwen2_vl
-cutoff_len: 3000
+cutoff_len: 2048
 max_samples: 11000
 overwrite_cache: true
 preprocessing_num_workers: 16
@@ -31,10 +31,10 @@ save_only_model: false
 report_to: none  # choices: [none, wandb, tensorboard, swanlab, mlflow]
 
 ### train
-per_device_train_batch_size: 1
+per_device_train_batch_size: 2
 gradient_accumulation_steps: 8
 learning_rate: 1.0e-4
-num_train_epochs: 50.0
+num_train_epochs: 5.0
 lr_scheduler_type: cosine
 warmup_ratio: 0.1
 bf16: true

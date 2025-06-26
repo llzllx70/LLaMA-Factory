@@ -58,3 +58,5 @@ QA_GENERATE_PROMPT = """信息:【{relation}】
 4. 不少于50个问题
 """
 
+########################
+FILLING_CONTENT_PROMPT = "请输出图片内容的正确类别"

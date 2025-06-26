@@ -10,7 +10,7 @@ class Test:
         ok = 0
         err = 0
 
-        classify_prompt = SFT_USER_PROMPT.format(id_2_key=id_to_key)
+        classify_prompt = FILLING_CONTENT_PROMPT
 
         for type_, images in structure.items():
 
@@ -26,23 +26,19 @@ class Test:
 
                 logging.info(f'call {path_} with {classify_prompt}')
 
-                r = local_qwen_api.local_inference(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
+                p_type = local_qwen_api.local_inference(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
 
-                logging.info(f'got {r}')
+                logging.info(f'got {p_type}')
+                print(f'got {p_type}')
 
-                p_id = self.extract_classify(r)
-                p_type = id_to_key[p_id]
-
-                t_id = key_to_id[type_]
-
-                if p_id == t_id:
+                if type_ == p_type:
                     ok += 1
-                    s = f'ok: {ok}, predict: {p_id}:{p_type} == true: {t_id}:{type_} {image}'
+                    s = f'ok: {ok}, predict: {p_type} == true: {type_} {image}'
                     print(s)
                     logging.info(s)
 
                 else:
                     err += 1
-                    s = f'err: {err}, predict: {p_id}:{p_type} != true: {t_id}:{type_} {image}'
+                    s = f'err: {err}, predict: {p_type} != true: {type_} {image}'
                     print(s)
                     logging.info(s)
