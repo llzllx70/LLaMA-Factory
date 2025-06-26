@@ -76,7 +76,7 @@ class MyTrainer:
 
     @property
     def relation(self):
-        return Json.load(f'{self.full_info_path}/relation.json')
+        return Json.load(f'{self.full_info_path}/infos.json')
 
     @property
     def types(self):
@@ -271,8 +271,9 @@ if __name__ == '__main__':
 
     if args.task == 'build_generate_xiolift_sft':
 
-        generator = CorpusGenerator(trainer.cwd, trainer.img_dir, trainer.qwen_api)
-        generator.build_sft(
+        CorpusGenerator().build_sft(
+            trainer.cwd,
+            trainer.img_dir,
             trainer.type_2_images, 
             trainer.relation
         )

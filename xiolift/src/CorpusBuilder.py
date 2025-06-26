@@ -1,44 +1,80 @@
 
 import random
 import json
+from tools.Json import Json
 import re
+import os
 from MyPrompt import *
 from threading import Lock
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from QwenApi import QwenApi
 
 class CorpusGenerator:
 
-    def __init__(self, cwd, img_dir, qwen_api=None):
+    def build_sft(self, cwd, img_dir, type_2_images, infos):
 
-        self.cwd = cwd
-        
-        self.image_builder = ImageCorpusBuilder(cwd, img_dir, qwen_api)
-        self.text_builder = TextCorpusBuilder(cwd, img_dir, qwen_api)
-
-    def build_sft(self, type_2_images, relation):
-
-        self.image_builder.build_image_sft(type_2_images, relation)
-        self.text_builder.build_text_sft(relation)
-
-        sft = self.image_builder.sft + self.text_builder.sft
+        sft = [
+            *Type2ImageBuilder(cwd, img_dir, type_2_images, infos).do_sft(),
+            *SystemBuilder(cwd, img_dir, type_2_images, infos).do_sft(),
+            *ErrBuilder(cwd, img_dir, type_2_images, infos).do_sft(force=True),
+            *RelationBuilder(cwd, img_dir, type_2_images, infos).do_sft(),
+            *DescBuilder(cwd, img_dir, type_2_images, infos).do_sft()
+        ]
 
         random.shuffle(sft)
 
-        with open(f'{self.cwd}/data/xiolift_generate_sft.json', 'w') as f:
+        with open(f'{cwd}/data/xiolift_generate_sft.json', 'w') as f:
             json.dump(sft, f, ensure_ascii=False, indent=2)
-
-        print(sft)
 
 class CorpusBuilder:
 
-    def __init__(self, cwd, img_dir, qwen_api):
+    def __init__(self, cwd, img_dir, type_2_images=None, infos=None):
+
         self.cwd = cwd
         self.img_dir = img_dir
+        self.type_2_images = type_2_images
+        self.infos = infos
 
         self.sft = []
         self.sft_lock = Lock()
 
-        self.qwen_api = qwen_api
+        self.qwen_api = QwenApi()
+
+    @property
+    def error(self):
+        return self.infos.get('error', [])
+
+    @property
+    def relation(self):
+        return self.infos.get('relation', {})
+
+    @property
+    def desc(self):
+        return self.infos.get('desc', '')
+
+    @property
+    def system(self):
+        return self.infos.get('system', {})
+
+    @property
+    def types(self):
+        return list(self.type_2_images.keys()) if self.type_2_images else []
+
+    def do_sft(self, force=False):
+
+        caller = type(self).__name__
+
+        if force or not os.path.exists(f'{self.cwd}/data/{caller}_sft.json'):
+            print(f"[Base] Calling build_sft from: {caller}")
+            self.build_sft()
+            Json.save(f'{self.cwd}/data/{caller}_sft.json', self.sft) 
+            print(f'End of {caller}')
+
+        else:
+            print(f'Loading existing SFT from {caller}')
+            self.sft = Json.load(f'{self.cwd}/data/{caller}_sft.json')
+
+        return self.sft
 
     def image_path(self, type_, image):
         return f'{self.img_dir}/{type_}/{image}'
@@ -64,18 +100,6 @@ class CorpusBuilder:
             }
         ]
 
-class ImageCorpusBuilder(CorpusBuilder):
-
-    def __init__(self, cwd, img_dir, qwen_api=None):
-        super().__init__(cwd, img_dir=img_dir, qwen_api=qwen_api)   
-
-    """生成式任务的语料库构建"""
-
-    def build_image_sft(self, type_2_images, relation):
-
-        self.build_one_image_sft(type_2_images)
-        self.build_two_image_sft(type_2_images, relation)
-
     def append_image_corpus(self, messages, images):
 
         self.sft.append({
@@ -83,29 +107,48 @@ class ImageCorpusBuilder(CorpusBuilder):
             "images": images
         })
 
-    def build_two_image_sft(self, type_2_images, relation):
+    def call_qwen(self, info):
 
-        types = list(type_2_images.keys())
+        r = self.qwen_api.text_generate(text_prompt=QA_GENERATE_PROMPT.format(info=info))
 
-        for err in relation['error']:
-            match = re.search(r'predict: (.*?) != true: (.*?) (s\d+_.*\.jpg)', err)
-            if not match:
-                continue
-            
-            p, t, image = match.groups()
-            if p not in types:
-                continue
+        rr = json.loads(r)
 
-            for e_image in type_2_images[p]:
-                self.append_image_corpus(
-                    self.build_two_filling_message(t, p),
-                    [self.image_path(t, image), self.image_path(p, e_image)]
-                )
+        with self.sft_lock:
+            for k, v in rr.items():
+                self.sft.append({
+                    "messages": [
+                        {
+                            "content": k,
+                            "role": "user"
+                        },
+                        {
+                            "content": v,
+                            "role": "assistant"
+                        }
+                    ]
+                })
 
-    def build_one_image_sft(self, type_2_images):
+    def batch_call_qwen(self, desc):
+
+        chunks = [desc[i:i+20] for i in range(0, len(desc), 20)]
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(self.call_qwen, chunk) for chunk in chunks]
+            for future in as_completed(futures):
+                # 捕捉异常
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"Error in from_relation: {e}")
+
+class Type2ImageBuilder(CorpusBuilder):
+
+    """从type_2_images.json构建语料库"""
+
+    def build_sft(self):
         
-        for type_, images in type_2_images.items():
-            other_types = [t for t in type_2_images.keys() if t != type_]
+        for type_, images in self.type_2_images.items():
+            other_types = [t for t in self.type_2_images.keys() if t != type_]
 
             for image in images:
                 self.append_image_corpus(
@@ -125,23 +168,15 @@ class ImageCorpusBuilder(CorpusBuilder):
                     )
 
     def build_choice_message(self, ok_type, other_types):
-        """生成选择任务的消息格式"""
-
         str_ = self.generate_choices(ok_type, other_types)
         return self.build_message(f"<image>请选择图片内容属于下面哪个类别: {str_}", ok_type)
 
     def build_filling_message(self, ok_type):
-        """生成填空任务的消息格式"""
         return self.build_message("<image>请输出图片内容的正确类别", ok_type)
 
-    def build_two_filling_message(self, ok, err):
-        """生成填空任务的消息格式"""
-        return self.build_message("<image><image>请按顺序输出两张图片内容的正确类别", f'{ok}, {err}')
-
     def build_judge_messages(self, ok_type, other_types):
-        """生成判断任务的消息格式"""
 
-        err_types = random.sample(other_types, 16)
+        err_types = random.sample(other_types, 10)
 
         return [
             self.build_message(f"<image>请判断图片内容是否属于类别: {err_type}", "错误")
@@ -150,24 +185,14 @@ class ImageCorpusBuilder(CorpusBuilder):
             self.build_message(f"<image>请判断图片内容是否属于类别: {ok_type}", "正确")
         ]
 
+class SystemBuilder(CorpusBuilder):
 
-class TextCorpusBuilder(CorpusBuilder):
+    """from info.json['system']"""
 
-    def __init__(self, cwd, img_dir, qwen_api=None):
-        super().__init__(cwd, img_dir=img_dir, qwen_api=qwen_api)
+    def build_sft(self):
 
-    """文本任务的语料库构建"""
-
-    def build_text_sft(self, relation):
-
-        self.from_system(relation['system'])
-        self.from_relation(relation['relation'])
-        self.from_desc(relation['desc'])
-
-    def from_system(self, system):
-
-        for ok_system, types in system.items():
-            other_systems = [s for s in system.keys() if s != ok_system]
+        for ok_system, types in self.system.items():
+            other_systems = [s for s in self.system.keys() if s != ok_system]
             for one_type in types:
 
                 self.sft.append({
@@ -185,43 +210,6 @@ class TextCorpusBuilder(CorpusBuilder):
                             "messages": message
                         }
                     )
-        
-    def from_relation(self, relation):
-
-        r = self.qwen_api.text_generate(text_prompt=QA_GENERATE_PROMPT.format(relation=relation))
-
-        rr = json.loads(r)
-
-        with self.sft_lock:
-            for k, v in rr.items():
-                self.sft.append({
-                    "messages": [
-                        {
-                            "content": k,
-                            "role": "user"
-                        },
-                        {
-                            "content": v,
-                            "role": "assistant"
-                        }
-                    ]
-                })
-
-    def from_desc(self, desc):
-
-        def task(chunk):
-            return self.from_relation(chunk)
-
-        chunks = [desc[i:i+20] for i in range(0, len(desc), 20)]
-
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = [executor.submit(task, chunk) for chunk in chunks]
-            for future in as_completed(futures):
-                # 捕捉异常
-                try:
-                    future.result()
-                except Exception as e:
-                    print(f"Error in from_relation: {e}")
 
     def build_choice_message(self, type_, ok_choice, other_choices):
 
@@ -240,7 +228,6 @@ class TextCorpusBuilder(CorpusBuilder):
         )
     
     def build_judge_messages(self, one_type, ok_system, other_systems):
-        """生成判断任务的消息格式"""
 
         err_system = random.sample(other_systems, 4)
 
@@ -250,3 +237,49 @@ class TextCorpusBuilder(CorpusBuilder):
         ] + [
             self.build_message(f"请判断{one_type}是否属于系统: {ok_system}", "正确")
         ]
+
+class ErrBuilder(CorpusBuilder):
+    
+    def build_sft(self):
+
+        for err in self.error:
+            match = re.search(r'predict: (.*?) != true: (.*?) (s\d+_.*\.jpg)', err)
+            if not match:
+                continue
+            
+            p_type, t_type, image = match.groups()
+
+            self.append_image_corpus(
+                self.build_message(f"<image>请判断图片内容是否属于类别: {p_type}", "错误"),
+                [self.image_path(t_type, image)]
+            )
+
+            if p_type not in self.types:
+                self.sft.append({
+                        "messages": self.build_message(f"电梯系统中是否存在一种部件名为{p_type}", f"当前系统不存在部件{p_type}"),
+                    }
+                )
+            else:
+                for e_image in self.type_2_images[p_type]:
+                    self.append_image_corpus(
+                        self.build_two_filling_message(t_type, p_type),
+                        [self.image_path(t_type, image), self.image_path(p_type, e_image)]
+                    )
+
+    def build_two_filling_message(self, ok, err):
+        return self.build_message("<image><image>请按顺序输出两张图片内容的正确类别", f'{ok}, {err}')
+
+class RelationBuilder(CorpusBuilder):
+    
+    """from info.json['relation']"""
+
+    def build_sft(self):
+        self.call_qwen(self.relation)
+
+class DescBuilder(CorpusBuilder):
+
+    """from info.json['desc']"""
+
+    def build_sft(self):
+        self.batch_call_qwen(self.desc)
+
