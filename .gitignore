@@ -181,3 +181,4 @@ models
 *.out
 data/dpo_xiolift.jsonl
 *.log
+.codemap
