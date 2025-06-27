@@ -29,7 +29,7 @@ class Test:
                 p_type = local_qwen_api.local_inference(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
 
                 logging.info(f'got {p_type}')
-                print(f'got {p_type}')
+                # print(f'got {p_type}')
 
                 if type_ == p_type:
                     ok += 1
