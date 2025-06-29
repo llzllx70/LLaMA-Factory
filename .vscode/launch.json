@@ -150,7 +150,7 @@
             "justMyCode": false
         },
         {
-            "name": "sft train",
+            "name": "sft lora train",
             "type": "debugpy",
             "request": "launch",
             "module": "llamafactory.cli",
@@ -161,6 +161,23 @@
             "console": "internalConsole",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "sft full train",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "llamafactory.cli",
+            "args": [
+                "train",
+                "examples/train_full/qwen2_5vl_full_sft.yaml"
+            ],
+            "console": "internalConsole",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "FORCE_TORCHRUN": "1"
+
             },
             "justMyCode": false
         },
