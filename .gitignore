@@ -182,3 +182,5 @@ models
 data/dpo_xiolift.jsonl
 *.log
 .codemap
+*bak_*
+*.json

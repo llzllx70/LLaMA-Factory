@@ -16,7 +16,7 @@ class CorpusGenerator:
         sft = [
             *Type2ImageBuilder(cwd, img_dir, type_2_images, infos).do_sft(),
             *SystemBuilder(cwd, img_dir, type_2_images, infos).do_sft(),
-            *ErrBuilder(cwd, img_dir, type_2_images, infos).do_sft(force=True),
+            # *ErrBuilder(cwd, img_dir, type_2_images, infos).do_sft(force=True),
             *RelationBuilder(cwd, img_dir, type_2_images, infos).do_sft(),
             *DescBuilder(cwd, img_dir, type_2_images, infos).do_sft()
         ]
@@ -176,7 +176,7 @@ class Type2ImageBuilder(CorpusBuilder):
 
     def build_judge_messages(self, ok_type, other_types):
 
-        err_types = random.sample(other_types, 10)
+        err_types = random.sample(other_types, 20)
 
         return [
             self.build_message(f"<image>请判断图片内容是否属于类别: {err_type}", "错误")
