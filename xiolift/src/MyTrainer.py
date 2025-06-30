@@ -14,6 +14,7 @@ from ImageAugment import ImageAugment
 
 from CorpusBuilder import *
 from Test import Test
+from Retrieval import Retrierer
 
 # Set OpenAI's API key and API base to use vLLM's API server.
 
@@ -250,12 +251,13 @@ if __name__ == '__main__':
 
     if args.task == 'test':
 
+        retrieval = Retrierer()
+
         Test().test(
-            id_to_key=trainer.id_2_key, 
-            key_to_id=trainer.key_2_id, 
-            structure=trainer.type_2_images, 
+            type_2_images=trainer.type_2_images, 
             full_img_path=trainer.full_img_path,
-            local_qwen_api=trainer.local_qwen_api
+            local_qwen_api=trainer.local_qwen_api,
+            retrieval=retrieval
         )
 
     if args.task == 'format_new_corpus':

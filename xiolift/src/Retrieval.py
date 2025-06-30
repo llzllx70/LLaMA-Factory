@@ -11,8 +11,16 @@ class Retrierer:
         self.model = AutoModel.from_pretrained(MODEL_NAME, trust_remote_code=True) # You must set trust_remote_code=True
         self.model.set_processor(MODEL_NAME)
         self.model.eval()
+        self.cwd = 'xiolift/xiolift_img_aug'
 
-    def scores(self, query, candidates):
+    def files(self, type_):
+        directory = f'{self.cwd}/{type_}'
+        return [f'{directory}/{f}' for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+
+    def scores(self, query, t_type, p_type):
+
+        query = f'{self.cwd}/{t_type}/{query}'
+        candidates = self.files(p_type)
 
         with torch.no_grad():
 
@@ -21,29 +29,37 @@ class Retrierer:
             
             scores = query @ candidates.T
 
-        print(scores) 
+        # print(scores) 
 
-r = Retrierer()
+        return scores
 
-a = 'xiolift/xiolift_img_aug/'
 
-def files(type_):
+if __name__ == "__main__":
 
-    directory = f'{a}{type_}'
+    r = Retrierer()
 
-    return [f'{directory}/{f}' for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    l = [
+        "单向弹性滑动导靴;弹性滚动导靴;s06_弹性滚动导靴 (2).jpg",
+        "层门上坎应急导向装置;层门上坎;补_层门上坎.jpg",
+        "导轨支架;导轨连接板;s03_T型导轨连接板 (2).jpg",
+        "固定式滚动导靴;门锁滚轮;s07_门锁滚轮3.jpg",
+        "限速器棘爪;限速器棘轮;补_限速器棘轮.jpg",
+        "层门紧急开锁装置;固定式滑动导靴;s03_固定式滑动导靴2.jpg",
+        "层门门锁机械锁钩;钳盘式制动器;补_钳盘式制动器 (2).jpg",
+        "限速器棘爪;防托槽机构;s06_防托槽机构.jpg",
+        "曳引机;全盘式制动器;补_全盘式制动器 (3).jpg",
+        "曳引机;全盘式制动器;补_全盘式制动器.jpg",
+        "单向弹性滑动导靴;对重块加托;s07_对重块加托.jpg",
+        "层门门锁机械锁钩;限速器开关;补_限速器开关 (2).jpg",
+        "导轨连接板;导轨支架;s06_导轨支架.jpg",
+        "油杯;曳引轮防脱槽机构;s03_曳引轮防脱槽机构.jpg",
+        "导轨支架;导轨压板;s03_导轨压板.jpg",
+        "导轨支架;导轨压板;s06_导轨压板.jpg",
+        "层门上坎;轿厢门楣;s03_轿厢门楣.jpg"
+    ]
 
-r.scores(
-    # query=f'{a}/轿厢护脚板/补_轿厢护脚板 (2).jpg',
-    # candidates=files('层门被动门扇')
-    # candidates=files('轿厢护脚板')
+    for l_ in l:
 
-    # query=f'{a}/T型导轨连接板/s03_T型导轨连接板 (2).jpg',
-    # candidates=files('导轨支架')
-    # candidates=files('T型导轨连接板架')
-    # candidates=files('轿厢护脚板')
-    # candidates=files('中分门')
+        a, b, c = l_.split(';')
 
-    query = f'{a}/弹性滚动导靴/s06_弹性滚动导靴 (2).jpg',
-    candidates=files('单向弹性滑动导靴')
-)
+        r.scores(query=c, t_type=b, p_type=a)

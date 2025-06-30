@@ -89,6 +89,15 @@
             ],
             "justMyCode": false
         },
+
+        {
+            "name": "retrieval",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/xiolift/src/Retrieval.py",
+            "console": "internalConsole",
+            "justMyCode": false
+        },
         {
             "name": "parse",
             "type": "debugpy",

@@ -2,10 +2,9 @@
 from MyPrompt import*
 import logging
 import os
-
 class Test:
     
-    def test(self, id_to_key, key_to_id, structure, full_img_path, local_qwen_api):
+    def test(self, type_2_images, full_img_path, local_qwen_api, retrieval):
 
         ok = 0
         err = 0
@@ -13,7 +12,9 @@ class Test:
 
         classify_prompt = FILLING_CONTENT_PROMPT
 
-        for type_, images in structure.items():
+        types = list(type_2_images.keys())
+
+        for type_, images in type_2_images.items():
 
             # if type_ != '限速器钢丝绳张紧装置':
             #     continue
@@ -29,9 +30,20 @@ class Test:
 
                 p_type = local_qwen_api.local_inference(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
 
-                logging.info(f'got {p_type}')
+                if p_type in types:
+                    scores = retrieval.scores(query=image, t_type=type_, p_type=p_type)
 
-                if p_type == '未知':
+                    mean = scores.mean()
+                    logging.info(f'got {p_type}, mean score: {mean}')
+                    print(f'got {p_type}, mean score: {mean}')
+
+                    if mean < 0.8:
+                        p_type = '未知'
+                else:
+                    logging.info(f'got {p_type}, not in types')
+                    print(f'got {p_type}, not in types')
+
+                if p_type == '未知' or p_type not in types:
                     unknown += 1
                     s = f'unknown: {unknown}, predict: {p_type} and true: {type_} {image}'
 
