@@ -9,6 +9,7 @@ class Test:
 
         ok = 0
         err = 0
+        unknown = 0
 
         classify_prompt = FILLING_CONTENT_PROMPT
 
@@ -29,16 +30,18 @@ class Test:
                 p_type = local_qwen_api.local_inference(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
 
                 logging.info(f'got {p_type}')
-                # print(f'got {p_type}')
 
-                if type_ == p_type:
+                if p_type == '未知':
+                    unknown += 1
+                    s = f'unknown: {unknown}, predict: {p_type} and true: {type_} {image}'
+
+                elif type_ == p_type:
                     ok += 1
                     s = f'ok: {ok}, predict: {p_type} == true: {type_} {image}'
-                    print(s)
-                    logging.info(s)
 
                 else:
                     err += 1
                     s = f'err: {err}, predict: {p_type} != true: {type_} {image}'
-                    print(s)
-                    logging.info(s)
+
+                print(s)
+                logging.info(s)
