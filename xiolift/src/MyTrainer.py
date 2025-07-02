@@ -13,7 +13,7 @@ from QwenApi import QwenApi
 from ImageAugment import ImageAugment
 
 from CorpusBuilder import *
-from Test import Test
+from Test import Infer
 from Retrieval import Retrierer
 
 # Set OpenAI's API key and API base to use vLLM's API server.
@@ -53,12 +53,12 @@ class MyTrainer:
         self.img_dir = img_dir
         self.info_dir = info_dir
         
-        self.full_img_path = f'{self.cwd}/{img_dir}'
-        self.full_info_path = f'{self.cwd}/{info_dir}'
+        self.img_aug_dir = f'{self.cwd}/{img_dir}'
+        self.info_dir = f'{self.cwd}/{info_dir}'
 
-        self.info_file = f'{self.full_info_path}/info.json'
-        self.type_2_images_file = f'{self.full_info_path}/type_2_images.json'
-        self.desc_structure_file = f'{self.full_info_path}/desc_structure.json'
+        self.info_file = f'{self.info_dir}/info.json'
+        self.type_2_images_file = f'{self.info_dir}/type_2_images.json'
+        self.desc_structure_file = f'{self.info_dir}/desc_structure.json'
 
         self.qwen_api = QwenApi()
         self.local_qwen_api = QwenApi(base_url=openai_api_base)
@@ -77,7 +77,7 @@ class MyTrainer:
 
     @property
     def relation(self):
-        return Json.load(f'{self.full_info_path}/infos.json')
+        return Json.load(f'{self.info_dir}/infos.json')
 
     @property
     def types(self):
@@ -105,7 +105,7 @@ class MyTrainer:
             return Json.load(self.type_2_images_file)
 
         else:
-            type_2_images = self.dir_to_dict(self.full_img_path)
+            type_2_images = self.dir_to_dict(self.img_aug_dir)
             Json.save(self.type_2_images_file, type_2_images)
 
         print(json.dumps(type_2_images, indent=2, ensure_ascii=False))
@@ -124,7 +124,7 @@ class MyTrainer:
 
             l = []
             for image in images:
-                path_ = os.path.join(self.full_img_path, type_, image)
+                path_ = os.path.join(self.img_aug_dir, type_, image)
 
                 l.append(
                     {
@@ -217,7 +217,7 @@ class MyTrainer:
         for classify, files in self.type_2_images.items():
 
             try:
-                files = [os.path.join(self.full_img_path, classify, file) for file in files]
+                files = [os.path.join(self.img_aug_dir, classify, file) for file in files]
 
                 desc = self.qwen_api.classify_info(classify, files)
 
@@ -253,12 +253,12 @@ if __name__ == '__main__':
 
         retrieval = Retrierer()
 
-        Test().test(
+        Infer(
             type_2_images=trainer.type_2_images, 
-            full_img_path=trainer.full_img_path,
+            full_img_path=trainer.img_aug_dir,
             local_qwen_api=trainer.local_qwen_api,
             retrieval=retrieval
-        )
+        ).test()
 
     if args.task == 'format_new_corpus':
         # xiolift.format_new_corpus()

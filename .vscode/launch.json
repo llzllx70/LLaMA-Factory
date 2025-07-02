@@ -98,6 +98,31 @@
             "console": "internalConsole",
             "justMyCode": false
         },
+
+        {
+            "name": "server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/xiolift/src/MyFastApi.py",
+            "console": "internalConsole",
+            "justMyCode": false
+        },
+
+        {
+            "name": "web",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "console": "internalConsole",
+            "justMyCode": false,
+            "args": [
+                "run",
+                "${workspaceFolder}/xiolift/src/MyWeb.py",
+                "--server.port",
+                "5000"
+            ]
+        },
+
         {
             "name": "parse",
             "type": "debugpy",

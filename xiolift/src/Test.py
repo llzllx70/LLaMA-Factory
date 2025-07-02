@@ -2,58 +2,70 @@
 from MyPrompt import*
 import logging
 import os
-class Test:
-    
-    def test(self, type_2_images, full_img_path, local_qwen_api, retrieval):
+
+UNKNOWN = '未知'
+class Infer:
+
+    def __init__(self, type_2_images, img_aug_dir, local_qwen_api, retrieval):
+
+        self.type_2_images = type_2_images
+        self.img_aug_dir = img_aug_dir
+        self.local_qwen_api = local_qwen_api
+        self.retrieval = retrieval
+
+        self.classify_prompt = FILLING_CONTENT_PROMPT
+
+    @property
+    def types(self):
+        return list(self.type_2_images.keys())
+
+    def get_type(self, image):
+
+        mean = 0
+        p_type = self.local_qwen_api.local_inference(image, system_prompt='你是一个分类器.', text_prompt=f'{self.classify_prompt}')
+
+        if p_type == '未知' or p_type not in self.types:
+            p_type = UNKNOWN
+
+        else:
+            scores = self.retrieval.scores(query=image, p_type=p_type)
+            mean = scores.mean()
+
+            if mean < 0.85:
+                p_type = UNKNOWN
+
+        logging.info(f'predict {image} -> type: {p_type}, mean score: {mean}')
+        return p_type
+
+    def test(self):
 
         ok = 0
         err = 0
         unknown = 0
 
-        classify_prompt = FILLING_CONTENT_PROMPT
-
-        types = list(type_2_images.keys())
-
-        for type_, images in type_2_images.items():
-
-            # if type_ != '限速器钢丝绳张紧装置':
-            #     continue
+        for t_type, images in self.type_2_images.items():
 
             for image in images:
 
                 if 'aug' in image:
                     continue
                 
-                path_ = os.path.join(full_img_path, type_, image)
+                image_path = os.path.join(self.img_aug_dir, t_type, image)
 
-                logging.info(f'call {path_} with {classify_prompt}')
+                p_type = self.get_type(image=image_path)
 
-                p_type = local_qwen_api.local_inference(path_, system_prompt='你是一个分类器.', text_prompt=f'{classify_prompt}')
-
-                if p_type in types:
-                    scores = retrieval.scores(query=image, t_type=type_, p_type=p_type)
-
-                    mean = scores.mean()
-                    logging.info(f'got {p_type}, mean score: {mean}')
-                    print(f'got {p_type}, mean score: {mean}')
-
-                    if mean < 0.8:
-                        p_type = '未知'
-                else:
-                    logging.info(f'got {p_type}, not in types')
-                    print(f'got {p_type}, not in types')
-
-                if p_type == '未知' or p_type not in types:
+                if p_type == UNKNOWN:
                     unknown += 1
-                    s = f'unknown: {unknown}, predict: {p_type} and true: {type_} {image}'
+                    s = f'unknown: {unknown}, predict: {p_type} and true: {t_type} {image}'
 
-                elif type_ == p_type:
+                elif t_type == p_type:
                     ok += 1
-                    s = f'ok: {ok}, predict: {p_type} == true: {type_} {image}'
+                    s = f'ok: {ok}, predict: {p_type} == true: {t_type} {image}'
 
                 else:
                     err += 1
-                    s = f'err: {err}, predict: {p_type} != true: {type_} {image}'
+                    s = f'err: {err}, predict: {p_type} != true: {t_type} {image}'
 
                 print(s)
                 logging.info(s)
+

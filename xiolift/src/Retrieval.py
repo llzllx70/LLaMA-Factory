@@ -2,6 +2,8 @@ import os
 import torch
 from transformers import AutoModel
 
+import logging
+
 MODEL_NAME = "models/bge-vl-large" 
 
 class Retrierer:
@@ -17,9 +19,11 @@ class Retrierer:
         directory = f'{self.cwd}/{type_}'
         return [f'{directory}/{f}' for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
 
-    def scores(self, query, t_type, p_type):
+    def scores(self, query, p_type):
 
-        query = f'{self.cwd}/{t_type}/{query}'
+        logging.info(f'retrieval get request: query: {query}, p_type: {p_type}')
+
+        # query = f'{self.cwd}/{query}'
         candidates = self.files(p_type)
 
         with torch.no_grad():
@@ -62,4 +66,4 @@ if __name__ == "__main__":
 
         a, b, c = l_.split(';')
 
-        r.scores(query=c, t_type=b, p_type=a)
+        r.scores(query=f'{c}/{b}', p_type=a)
