@@ -116,29 +116,18 @@ class MyTrainer:
         if os.path.exists(self.desc_structure_file):
             return Json.load(self.desc_structure_file)
 
-        structure = self.build_type_2_images()
+        type_2_images = self.build_type_2_images()
 
-        desc_structure = {}
+        desc_ = {}
 
-        for type_, images in structure.items():
-
-            l = []
+        for type_, images in type_2_images.items():
             for image in images:
                 path_ = os.path.join(self.img_aug_dir, type_, image)
+                desc = self.qwen_api.image_info(classify=type_, file=path_)
+                logging.info(f"Image: {image}, Desc: {desc}")
+                desc_[image] = desc
 
-                l.append(
-                    {
-                        'name': image,
-                        # 'desc': self.call(path_, system_prompt='你是一个图片内容提取器', text_prompt=IMAGE_EXTRACT_PROMPT)
-                        'desc': self.qwen_api.image_info(classify=type_, file=path_)
-                    }
-                )
-
-            desc_structure[type_] = l
-
-        print(json.dumps(structure, indent=2, ensure_ascii=False))
-
-        Json.save(self.desc_structure_file, desc_structure)
+        Json.save(self.desc_structure_file, desc_)
 
         return desc_structure
 
@@ -285,7 +274,13 @@ if __name__ == '__main__':
         CorpusBuilder().build_dpo(desc_structure=desc_structure)
 
     if args.task == 'build_desc_structure':
-        trainer.build_desc_structure()
+
+        CorpusGenerator().build_desc_structure(
+            trainer.cwd,
+            trainer.img_dir,
+            trainer.type_2_images, 
+            trainer.relation
+        )
 
     if args.task == 'augment':
         trainer.augment()

@@ -8,6 +8,7 @@ from MyPrompt import *
 from threading import Lock
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from QwenApi import QwenApi
+import logging
 
 class CorpusGenerator:
 
@@ -25,6 +26,13 @@ class CorpusGenerator:
 
         with open(f'{cwd}/data/xiolift_generate_sft.json', 'w') as f:
             json.dump(sft, f, ensure_ascii=False, indent=2)
+
+    def build_desc_structure(self, cwd, img_dir, type_2_images, infos):
+
+        desc_structure = DescStructureBuilder(cwd, img_dir, type_2_images, infos).build_desc_structure()
+
+        with open(f'{cwd}/xiolift/infos/desc_structure.json', 'w') as f:
+            json.dump(desc_structure, f, ensure_ascii=False, indent=2)
 
 class CorpusBuilder:
 
@@ -59,6 +67,14 @@ class CorpusBuilder:
     @property
     def types(self):
         return list(self.type_2_images.keys()) if self.type_2_images else []
+
+    @property
+    def desc_structure_file(self):
+        return f'{self.cwd}/xiolift/infos/desc_structure.json'
+
+    @property
+    def images(self):
+        return [image for type_, images in self.type_2_images.items() for image in images]
 
     def do_sft(self, force=False):
 
@@ -107,15 +123,15 @@ class CorpusBuilder:
             "images": images
         })
 
-    def call_qwen(self, info):
+    def call_qwen_qa(self, chunk, save_to):
 
-        r = self.qwen_api.text_generate(text_prompt=QA_GENERATE_PROMPT.format(info=info))
+        r = self.qwen_api.text_generate(text_prompt=QA_GENERATE_PROMPT.format(info=chunk))
 
         rr = json.loads(r)
 
         with self.sft_lock:
             for k, v in rr.items():
-                self.sft.append({
+                save_to.append({
                     "messages": [
                         {
                             "content": k,
@@ -128,12 +144,23 @@ class CorpusBuilder:
                     ]
                 })
 
-    def batch_call_qwen(self, desc):
+    def call_image_desc(self, file, save_to):
 
-        chunks = [desc[i:i+20] for i in range(0, len(desc), 20)]
+        type_, image = file
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = [executor.submit(self.call_qwen, chunk) for chunk in chunks]
+        path_ = os.path.join(self.img_dir, type_, image)
+        r = self.qwen_api.image_info(file=path_)
+
+        logging.info(f"Image: {image}, Desc: {r}")
+
+        with self.sft_lock:
+            save_to[image] = r
+
+    def batch_call_qwen(self, fn, chunks, save_to):
+
+        with ThreadPoolExecutor(max_workers=100) as executor:
+            # futures = [executor.submit(self.call_qwen_qa, chunk) for chunk in chunks]
+            futures = [executor.submit(fn, chunk, save_to) for chunk in chunks]
             for future in as_completed(futures):
                 # 捕捉异常
                 try:
@@ -274,12 +301,36 @@ class RelationBuilder(CorpusBuilder):
     """from info.json['relation']"""
 
     def build_sft(self):
-        self.call_qwen(self.relation)
+        self.call_qwen_qa(self.relation)
 
 class DescBuilder(CorpusBuilder):
 
     """from info.json['desc']"""
 
     def build_sft(self):
-        self.batch_call_qwen(self.desc)
 
+        chunks = [self.desc[i:i+20] for i in range(0, len(self.desc), 20)]
+
+        self.batch_call_qwen(fn=self.call_qwen_qa, chunks=chunks, save_to=self.sft)
+
+
+class DescStructureBuilder(CorpusBuilder):
+    
+    """构建desc_structure.json"""
+
+    def build_desc_structure(self):
+
+        if os.path.exists(self.desc_structure_file):
+            return Json.load(self.desc_structure_file)
+
+        else:
+            desc_ = {}
+
+            chunks = []
+
+            for type_, images in self.type_2_images.items():
+                for image in images:
+                    chunks.append((type_, image))
+                
+            self.batch_call_qwen(fn=self.call_image_desc, chunks=chunks, save_to=desc_)
+            return desc_

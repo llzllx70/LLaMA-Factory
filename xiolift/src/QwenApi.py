@@ -119,7 +119,7 @@ class QwenApi:
         return self.batch_inference(messages=messages)
 
 
-    def image_info(self, classify, file):
+    def image_info(self, file):
 
         try:
 
@@ -147,7 +147,8 @@ class QwenApi:
 
             messages[-1]["content"].append({
                 "type": "text", 
-                "text": IMAGE_EXTRACT_PROMPT.format(classify=classify)
+                # "text": IMAGE_EXTRACT_PROMPT.format(classify=classify)
+                "text": IMAGE_EXTRACT_PROMPT
             })  
 
             return self.batch_inference(messages=messages)
